@@ -11,7 +11,8 @@ defmodule Cizen.Dispatcher.Node do
       :set,
       :public,
       :named_table,
-      {:read_concurrency, true}
+      {:read_concurrency, true},
+      {:write_concurrency, true}
     ])
   end
 
@@ -33,10 +34,12 @@ defmodule Cizen.Dispatcher.Node do
 
         following_nodes =
           state.operations
-          |> Enum.map(fn {operation, nodes} ->
-            Map.get(nodes, Filter.eval(operation, event), [])
+          |> Enum.reduce([], fn {operation, nodes}, list ->
+            case Map.get(nodes, Filter.eval(operation, event)) do
+              nil -> list
+              node -> [node | list]
+            end
           end)
-          |> List.flatten()
           |> Enum.uniq()
 
         Cizen.Dispatcher.log(event, __ENV__)

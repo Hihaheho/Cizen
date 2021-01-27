@@ -43,26 +43,22 @@ defmodule Cizen.Dispatcher.Sender do
     {:ok, state}
   end
 
-  def handle_continue(:try_dequeue_event, %{event: nil, event_queue: queue} = state) do
-    case :queue.out(queue) do
-      {{:value, event}, queue} ->
-        Cizen.Dispatcher.log(event, __ENV__)
-        state = %{state | event: event, event_queue: queue}
-
-        destinations = Node.push(state.root_node, event)
-        Cizen.Dispatcher.log(event, __ENV__)
-
-        state = put_in(state.destinations, destinations)
-        {:noreply, state, {:continue, :send_if_fulfilled}}
-
-      _ ->
-        {:noreply, state}
-    end
+  def handle_cast(:allow_to_send, state) do
+    state = %{state | allowed_to_send?: true}
+    send_if_fulfilled(state)
   end
 
-  def handle_continue(:try_dequeue_event, state), do: {:noreply, state}
+  def handle_cast({:push, event}, %{event: nil} = state) do
+    state = %{state | event: event}
+    push_event(state)
+  end
 
-  def handle_continue(:send_if_fulfilled, state) do
+  def handle_cast({:push, event}, state) do
+    state = %{state | event_queue: :queue.in(event, state.event_queue)}
+    {:noreply, state}
+  end
+
+  defp send_if_fulfilled(state) do
     if not is_nil(state.event) and state.allowed_to_send? do
       Cizen.Dispatcher.log(state.event, __ENV__)
 
@@ -74,20 +70,30 @@ defmodule Cizen.Dispatcher.Sender do
 
       allow_to_send(state.next_sender)
 
-      {:noreply, state |> reset(), {:continue, :try_dequeue_event}}
+      state = state |> reset()
+
+      try_dequeue_event(state)
     else
       {:noreply, state}
     end
   end
 
-  def handle_cast(:allow_to_send, state) do
-    state = %{state | allowed_to_send?: true}
-    {:noreply, state, {:continue, :send_if_fulfilled}}
+  defp push_event(%{event: event, root_node: root_node} = state) do
+    Cizen.Dispatcher.log(event, __ENV__)
+    destinations = Node.push(root_node, event)
+
+    Cizen.Dispatcher.log(event, __ENV__)
+    state = Map.put(state, :destinations, destinations)
+    send_if_fulfilled(state)
   end
 
-  def handle_cast({:push, event}, state) do
-    Cizen.Dispatcher.log(event, __ENV__)
-    state = %{state | event_queue: :queue.in(event, state.event_queue)}
-    {:noreply, state, {:continue, :try_dequeue_event}}
+  defp try_dequeue_event(%{event_queue: queue} = state) do
+    case :queue.out(queue) do
+      {{:value, event}, queue} ->
+        state = %{state | event: event, event_queue: queue}
+        push_event(state)
+      _ ->
+        {:noreply, state}
+    end
   end
 end

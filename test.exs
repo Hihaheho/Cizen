@@ -32,16 +32,18 @@ defmodule B do
       end
     end
 
-    1..task_count
-    |> Enum.shuffle()
-    |> Enum.flat_map(&(Stream.cycle([&1]) |> Enum.take(event_count)))
-    |> Enum.each(
-      &spawn(fn ->
-        Dispatcher.dispatch(Event.new(nil, %A{a: &1}))
-      end)
-    )
+    {time, _} = :timer.tc(fn ->
+      1..task_count
+      |> Enum.each(
+        &spawn(fn ->
+          for _ <- 1..event_count do
+            Dispatcher.dispatch(Event.new(nil, %A{a: &1}))
+          end
+        end)
+      )
 
-    tasks |> Enum.map(&Task.await(&1, :infinity))
+      tasks |> Enum.map(&Task.await(&1, :infinity))
+    end)
 
     :ets.tab2list(Cizen.Dispatcher)
     |> Enum.group_by(fn {{event, _label}, _time} -> event end, fn {{_event, label}, time} ->
@@ -70,16 +72,23 @@ defmodule B do
     end)
     # |> Enum.sort_by(&elem(&1, 1), :desc)
     |> Enum.each(&IO.inspect(&1, width: 200))
+    time / 1_000_000
   end
 end
 
 time = 1..10
 |> Enum.map(fn _ ->
-{time, _} = :timer.tc(fn -> B.run() end)
-IO.puts("#{time / 1_000_000}ms")
-:timer.sleep(1000)
-time
+  time = B.run()
+  IO.puts("#{time |> :erlang.float_to_binary([decimals: 2])}")
+  :timer.sleep(1000)
+  time
 end)
 |> Enum.sum()
 
-IO.puts("#{time/10/1_000_000}ms")
+IO.puts("#{time/10 |> :erlang.float_to_binary([decimals: 2])}")
+
+# :observer.start()
+# 1..1000
+# |> Enum.map(fn _ ->
+#   B.run()
+# end)
