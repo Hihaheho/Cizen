@@ -40,7 +40,6 @@ defmodule Cizen.Dispatcher.Node do
               node -> [node | list]
             end
           end)
-          |> Enum.uniq()
 
         Cizen.Dispatcher.log(event, __ENV__)
 
