@@ -77,6 +77,12 @@ defmodule B do
   end
 end
 
+# warmup
+time = 1..5
+|> Enum.map(fn _ ->
+  time = B.run()
+end)
+
 time = 1..10
 |> Enum.map(fn _ ->
   time = B.run()
