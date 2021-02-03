@@ -49,7 +49,7 @@ defmodule Cizen.MixProject do
   defp deps do
     [
       {:recon, "~> 2.5", only: :test},
-      {:elixir_uuid, "~> 1.2"},
+      {:uuid, "~> 1.1"},
       {:poison, "~> 4.0", only: :test, runtime: false},
       {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0-rc.3", only: [:dev, :test], runtime: false},

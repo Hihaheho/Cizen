@@ -13,7 +13,6 @@ defmodule Cizen.Dispatcher.Sender do
   end
 
   def push(sender, event) do
-    Cizen.Dispatcher.log(event, __ENV__)
     GenServer.cast(sender, {:push, event})
   end
 
@@ -60,13 +59,9 @@ defmodule Cizen.Dispatcher.Sender do
 
   defp send_if_fulfilled(state) do
     if not is_nil(state.event) and state.allowed_to_send? do
-      Cizen.Dispatcher.log(state.event, __ENV__)
-
       Enum.each(state.destinations, fn pid ->
         send(pid, state.event)
       end)
-
-      Cizen.Dispatcher.log(state.event, __ENV__)
 
       allow_to_send(state.next_sender)
 
@@ -79,10 +74,8 @@ defmodule Cizen.Dispatcher.Sender do
   end
 
   defp push_event(%{event: event, root_node: root_node} = state) do
-    Cizen.Dispatcher.log(event, __ENV__)
     destinations = Node.push(root_node, event)
 
-    Cizen.Dispatcher.log(event, __ENV__)
     state = Map.put(state, :destinations, destinations)
     send_if_fulfilled(state)
   end
@@ -92,6 +85,7 @@ defmodule Cizen.Dispatcher.Sender do
       {{:value, event}, queue} ->
         state = %{state | event: event, event_queue: queue}
         push_event(state)
+
       _ ->
         {:noreply, state}
     end

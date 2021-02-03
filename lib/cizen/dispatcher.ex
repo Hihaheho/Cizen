@@ -18,24 +18,11 @@ defmodule Cizen.Dispatcher do
     Intake.start_link()
   end
 
-  def log(event, env) do
-    # {name, arity} = env.function
-
-    # label =
-    #   "#{env.module |> Module.split() |> Enum.drop(1) |> Enum.join(".")}.#{name}/#{arity} #{
-    #     env.file |> Path.relative_to(File.cwd!())
-    #   }:#{env.line}"
-
-    # time = :os.system_time(:microsecond)
-    # :ets.insert(__MODULE__, {{event, label}, time})
-  end
-
   @doc """
   Dispatch the event.
   """
   @spec dispatch(Event.t()) :: :ok
   def dispatch(event) do
-    log(event, __ENV__)
     Intake.push(event)
   end
 

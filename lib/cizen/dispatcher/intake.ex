@@ -29,11 +29,10 @@ defmodule Cizen.Dispatcher.Intake do
   end
 
   def push(event) do
-    Cizen.Dispatcher.log(event, __ENV__)
     {sender_count, counter} = :persistent_term.get(__MODULE__)
-    Cizen.Dispatcher.log(event, __ENV__)
+
     counter = :atomics.add_get(counter, 1, 1) - 1
-    Cizen.Dispatcher.log(event, __ENV__)
+
     Sender.push(sender_name(counter, sender_count), event)
   end
 end

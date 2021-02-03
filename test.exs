@@ -9,7 +9,8 @@ defmodule B do
     :ets.delete_all_objects(Dispatcher)
     pid = self()
     task_count = 8
-    event_count = 1000
+    event_count = 100000
+    # event_count = 20
 
     tasks =
       1..task_count
@@ -80,7 +81,7 @@ time = 1..10
 |> Enum.map(fn _ ->
   time = B.run()
   IO.puts("#{time |> :erlang.float_to_binary([decimals: 2])}")
-  :timer.sleep(1000)
+  :timer.sleep(500)
   time
 end)
 |> Enum.sum()
