@@ -26,26 +26,24 @@ defmodule Cizen.Dispatcher.Node do
 
   @spec push(GenServer.server(), Event.t()) :: MapSet.t(pid)
   def push(node, event) do
-    case :ets.lookup(__MODULE__, GenServer.whereis(node)) do
-      [{_, state}] ->
-        following_nodes =
-          state.operations
-          |> Enum.reduce([], fn {operation, nodes}, list ->
-            case Map.get(nodes, Filter.eval(operation, event)) do
-              nil -> list
-              node -> [node | list]
-            end
-          end)
+    {operations, subscribers} =
+      case :ets.lookup(__MODULE__, GenServer.whereis(node)) do
+        [{_, %{operations: operations, subscribers: subscribers}}] -> {operations, subscribers}
+        [] -> {[], MapSet.new()}
+      end
 
-        Enum.reduce(following_nodes, state.subscribers, fn following_node, subscribers ->
-          following_node
-          |> __MODULE__.push(event)
-          |> MapSet.union(subscribers)
-        end)
-
-      [] ->
-        MapSet.new([])
-    end
+    operations
+    |> Enum.reduce([], fn {operation, nodes}, list ->
+      case Map.get(nodes, Filter.eval(operation, event)) do
+        nil -> list
+        node -> [node | list]
+      end
+    end)
+    |> Enum.reduce(subscribers, fn following_node, subscribers ->
+      following_node
+      |> __MODULE__.push(event)
+      |> MapSet.union(subscribers)
+    end)
   end
 
   @spec put(GenServer.server(), Code.t(), pid) :: :ok
