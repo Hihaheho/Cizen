@@ -37,14 +37,11 @@ defmodule Cizen.Dispatcher.Node do
             end
           end)
 
-        subscribers =
-          Enum.reduce(following_nodes, state.subscribers, fn following_node, subscribers ->
-            following_node
-            |> __MODULE__.push(event)
-            |> MapSet.union(subscribers)
-          end)
-
-        subscribers
+        Enum.reduce(following_nodes, state.subscribers, fn following_node, subscribers ->
+          following_node
+          |> __MODULE__.push(event)
+          |> MapSet.union(subscribers)
+        end)
 
       [] ->
         MapSet.new([])

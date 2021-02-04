@@ -9,10 +9,10 @@ defmodule Cizen.Dispatcher.IntakeTest do
   test "pushes an event to sender" do
     event = Event.new(nil, %TestEvent{})
 
-    [{_, index}] = :ets.lookup(Intake, :index)
-    [{_, sender_count}] = :ets.lookup(Intake, :sender_count)
+    {sender_count, counter} = :persistent_term.get(Intake)
+    index = :atomics.get(counter, 1)
 
-    sender = GenServer.whereis(:"#{Cizen.Dispatcher.Sender}_#{rem(index + 1, sender_count)}")
+    sender = GenServer.whereis(:"#{Cizen.Dispatcher.Sender}_#{rem(index, sender_count)}")
 
     :erlang.trace(sender, true, [:receive])
 
@@ -24,9 +24,10 @@ defmodule Cizen.Dispatcher.IntakeTest do
   test "increments index" do
     event = Event.new(nil, %TestEvent{})
 
-    [{_, previous_index}] = :ets.lookup(Intake, :index)
+    {_, counter} = :persistent_term.get(Intake)
+    previous_index = :atomics.get(counter, 1)
     Intake.push(event)
-    [{_, index}] = :ets.lookup(Intake, :index)
+    index = :atomics.get(counter, 1)
     assert index == previous_index + 1
   end
 end
