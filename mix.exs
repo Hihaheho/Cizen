@@ -4,7 +4,7 @@ defmodule Cizen.MixProject do
   def project do
     [
       app: :cizen,
-      version: "0.16.0",
+      version: "0.17.0",
       package: package(),
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -54,7 +54,7 @@ defmodule Cizen.MixProject do
       {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0-rc.3", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:ex_doc, "~> 0.23.0", only: :dev},
       {:mock, "~> 0.3", only: :test}
     ]
   end
@@ -71,7 +71,7 @@ defmodule Cizen.MixProject do
 
   defp extras do
     [
-      {"README.md", [filename: "readme", title: "Read Me"]},
+      "README.md",
       "guides/getting_started.md",
       "guides/basic_concepts/event.md",
       "guides/basic_concepts/filter.md",
@@ -100,21 +100,10 @@ defmodule Cizen.MixProject do
         Cizen.Effect,
         Cizen.EffectHandler
       ],
-      Channel: [
-        Cizen.Channel,
-        Cizen.Channel.EmitMessage,
-        Cizen.Channel.FeedMessage,
-        Cizen.RegisterChannel,
-        Cizen.RegisterChannel.Registered
-      ],
       Dispatchers: [
         Cizen.Dispatcher,
-        Cizen.FilterDispatcher
-      ],
-      "Dispatcher Internal": [
-        Cizen.DefaultEventRouter,
-        Cizen.EventRouter,
-        Cizen.FilterDispatcher.PushEvent
+        Cizen.Event,
+        Cizen.Filter
       ],
       Effects: [
         Cizen.Effects,
@@ -138,18 +127,9 @@ defmodule Cizen.MixProject do
       Effectful: [
         Cizen.Effectful
       ],
-      Event: [
-        Cizen.Event,
-        Cizen.Filter,
-        Cizen.EventID
-      ],
       Requesting: [
         Cizen.Request,
         Cizen.Request.Response
-      ],
-      "Requesting Internal": [
-        Cizen.RequestResponseMediator,
-        Cizen.RequestResponseMediator.Worker
       ],
       Saga: [
         Cizen.CizenSagaRegistry,
