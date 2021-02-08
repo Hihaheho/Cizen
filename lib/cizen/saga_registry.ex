@@ -63,7 +63,7 @@ defmodule Cizen.SagaRegistry do
     case result do
       {:error, {:already_registered, pid}} ->
         try do
-          saga_id = GenServer.call(pid, :get_saga_id)
+          saga_id = GenServer.call(pid, {Saga, :get_saga_id})
           {:error, {:already_registered, saga_id}}
         catch
           # rare case
@@ -93,7 +93,7 @@ defmodule Cizen.SagaRegistry do
           Saga.handle_request(request)
         else
           try do
-            GenServer.call(pid, request)
+            GenServer.call(pid, {Saga, request})
           catch
             # rare case
             :exit, _ -> {:error, :no_saga}

@@ -32,6 +32,24 @@ defmodule Cizen.SagaTest do
       assert_condition(100, :error == Saga.get_pid(id))
     end
 
+    test "does not finish on Finish event for other saga" do
+      pid = self()
+      Dispatcher.listen_event_type(Saga.Started)
+
+      id =
+        launch_test_saga(
+          handle_event: fn _, event, state ->
+            send(pid, event)
+            state
+          end
+        )
+
+      finish = %Saga.Finish{saga_id: SagaID.new()}
+      Saga.send_to(id, finish)
+      assert_receive ^finish
+      assert {:ok, _} = Saga.get_pid(id)
+    end
+
     test "dispatches Finished event on finish" do
       Dispatcher.listen_event_type(Saga.Finished)
       id = launch_test_saga()
@@ -546,6 +564,75 @@ defmodule Cizen.SagaTest do
       refute Process.alive?(pid)
 
       assert_condition(100, :error == Saga.get_pid(saga_id))
+    end
+  end
+
+  describe "Saga.self/0" do
+    defmodule TestSagaSelf do
+      use Saga
+      defstruct [:pid]
+
+      @impl true
+      def init(_id, saga) do
+        send(saga.pid, Saga.self())
+        saga
+      end
+
+      @impl true
+      def handle_event(_id, _event, saga) do
+        saga
+      end
+    end
+
+    test "invokes init instead of resume when resume is not defined" do
+      saga_id = SagaID.new()
+      {:ok, _pid} = Saga.start_saga(saga_id, %TestSagaSelf{pid: self()})
+
+      assert_receive ^saga_id
+    end
+  end
+
+  defmodule TestSagaGenServer do
+    use Saga
+    defstruct []
+
+    @impl true
+    def init(_id, _saga) do
+      []
+    end
+
+    @impl true
+    def handle_call(:pop, _from, [head | tail]) do
+      {:reply, head, tail}
+    end
+
+    @impl true
+    def handle_cast({:push, item}, state) do
+      {:noreply, [item | state]}
+    end
+  end
+
+  describe "handle_call/3 and handle_cast/3" do
+    test "works with GenServer APIs" do
+      saga_id = SagaID.new()
+      {:ok, pid} = Saga.start_saga(saga_id, %TestSagaGenServer{})
+
+      GenServer.cast(pid, {:push, :a})
+      assert :sys.get_state(pid) == [:a]
+
+      assert GenServer.call(pid, :pop) == :a
+      assert :sys.get_state(pid) == []
+    end
+
+    test "works with Saga.call/2 and Saga.cast/2" do
+      saga_id = SagaID.new()
+      {:ok, pid} = Saga.start_saga(saga_id, %TestSagaGenServer{})
+
+      Saga.cast(saga_id, {:push, :a})
+      assert :sys.get_state(pid) == [:a]
+
+      assert Saga.call(saga_id, :pop) == :a
+      assert :sys.get_state(pid) == []
     end
   end
 end
