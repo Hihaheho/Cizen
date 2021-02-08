@@ -38,7 +38,7 @@ defmodule Cizen.Effects.StartTest do
           Process.send_after(self(), :ok, 200)
 
           receive do
-            :ok -> Dispatcher.dispatch(%Saga.Started{id: id})
+            :ok -> Dispatcher.dispatch(%Saga.Started{saga_id: id})
           end
         end)
 
@@ -59,7 +59,7 @@ defmodule Cizen.Effects.StartTest do
           }
         end)
 
-      assert_receive %Saga.Started{id: ^id}, 30
+      assert_receive %Saga.Started{saga_id: ^id}, 30
     end
   end
 end

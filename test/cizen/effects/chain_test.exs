@@ -244,7 +244,7 @@ defmodule Cizen.Effects.ChainTest do
 
     test "works with Automaton" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
@@ -260,7 +260,7 @@ defmodule Cizen.Effects.ChainTest do
 
       assert_receive [:a, :b, :c]
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
   end
 end

@@ -123,7 +123,7 @@ defmodule Cizen.Automaton do
 
     case state do
       @finish ->
-        Dispatcher.dispatch(%Saga.Finish{id: id})
+        Dispatcher.dispatch(%Saga.Finish{saga_id: id})
 
       state ->
         state = module.yield(id, state)
@@ -132,11 +132,11 @@ defmodule Cizen.Automaton do
   end
 
   def init(id, saga) do
-    init_with(id, saga, %Saga.Started{id: id}, :spawn, [id, saga])
+    init_with(id, saga, %Saga.Started{saga_id: id}, :spawn, [id, saga])
   end
 
   def resume(id, saga, state) do
-    init_with(id, saga, %Saga.Resumed{id: id}, :respawn, [id, saga, state])
+    init_with(id, saga, %Saga.Resumed{saga_id: id}, :respawn, [id, saga, state])
   end
 
   defp init_with(id, saga, event, function, arguments) do

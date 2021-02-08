@@ -15,7 +15,7 @@ defmodule Cizen.TestHelper do
 
     task =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %Saga.Started{id: ^saga_id} -> true end))
+        Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
 
         Saga.start_saga(
           saga_id,

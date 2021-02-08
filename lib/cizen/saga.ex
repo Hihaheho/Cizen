@@ -81,32 +81,32 @@ defmodule Cizen.Saga do
 
   defmodule Finish do
     @moduledoc "A event fired to finish"
-    defstruct([:id])
+    defstruct([:saga_id])
   end
 
   defmodule Started do
     @moduledoc "A event fired on start"
-    defstruct([:id])
+    defstruct([:saga_id])
   end
 
   defmodule Resumed do
     @moduledoc "A event fired on resume"
-    defstruct([:id])
+    defstruct([:saga_id])
   end
 
   defmodule Ended do
     @moduledoc "A event fired on end"
-    defstruct([:id])
+    defstruct([:saga_id])
   end
 
   defmodule Finished do
     @moduledoc "A event fired on finish"
-    defstruct([:id])
+    defstruct([:saga_id])
   end
 
   defmodule Crashed do
     @moduledoc "A event fired on crash"
-    defstruct([:id, :saga, :reason, :stacktrace])
+    defstruct([:saga_id, :saga, :reason, :stacktrace])
   end
 
   @doc """
@@ -190,7 +190,7 @@ defmodule Cizen.Saga do
   catch
     :exit, _ -> :ok
   after
-    Dispatcher.dispatch(%Ended{id: id})
+    Dispatcher.dispatch(%Ended{saga_id: id})
   end
 
   def send_to(id, message) do
@@ -205,17 +205,17 @@ defmodule Cizen.Saga do
 
   @impl true
   def init({:start, id, saga, lifetime}) do
-    init_with(id, saga, lifetime, %Started{id: id}, :init, [id, saga])
+    init_with(id, saga, lifetime, %Started{saga_id: id}, :init, [id, saga])
   end
 
   @impl true
   def init({:resume, id, saga, state, lifetime}) do
-    init_with(id, saga, lifetime, %Resumed{id: id}, :resume, [id, saga, state])
+    init_with(id, saga, lifetime, %Resumed{saga_id: id}, :resume, [id, saga, state])
   end
 
   defp init_with(id, saga, lifetime, event, function, arguments) do
     Registry.register(CizenSagaRegistry, id, saga)
-    Dispatcher.listen(Filter.new(fn %Finish{id: ^id} -> true end))
+    Dispatcher.listen(Filter.new(fn %Finish{saga_id: ^id} -> true end))
     module = module(saga)
 
     unless is_nil(lifetime), do: Process.monitor(lifetime)
@@ -234,7 +234,7 @@ defmodule Cizen.Saga do
   end
 
   @impl true
-  def handle_info(%Finish{id: id}, {id, module, state}) do
+  def handle_info(%Finish{saga_id: id}, {id, module, state}) do
     {:stop, {:shutdown, :finish}, {id, module, state}}
   end
 
@@ -257,12 +257,18 @@ defmodule Cizen.Saga do
   end
 
   def terminate({:shutdown, :finish}, {id, _module, _state}) do
-    Dispatcher.dispatch(%Finished{id: id})
+    Dispatcher.dispatch(%Finished{saga_id: id})
     :shutdown
   end
 
   def terminate({:shutdown, {reason, trace}}, {id, _module, _state}) do
-    Dispatcher.dispatch(%Crashed{id: id, saga: get_saga(id), reason: reason, stacktrace: trace})
+    Dispatcher.dispatch(%Crashed{
+      saga_id: id,
+      saga: get_saga(id),
+      reason: reason,
+      stacktrace: trace
+    })
+
     :shutdown
   end
 

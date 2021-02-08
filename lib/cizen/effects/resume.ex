@@ -26,11 +26,11 @@ defmodule Cizen.Effects.Resume do
   @impl true
   def init(_, %__MODULE__{id: saga_id, saga: saga, state: state}) do
     Task.async(fn ->
-      Dispatcher.listen(Filter.new(fn %Saga.Resumed{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Resumed{saga_id: ^saga_id} -> true end))
       Saga.resume(saga_id, saga, state)
 
       receive do
-        %Saga.Resumed{id: ^saga_id} -> :ok
+        %Saga.Resumed{saga_id: ^saga_id} -> :ok
       end
     end)
     |> Task.await()

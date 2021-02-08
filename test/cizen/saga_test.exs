@@ -22,28 +22,28 @@ defmodule Cizen.SagaTest do
     test "dispatches Launched event on launch" do
       Dispatcher.listen_event_type(Saga.Started)
       id = launch_test_saga()
-      assert_receive %Saga.Started{id: ^id}
+      assert_receive %Saga.Started{saga_id: ^id}
     end
 
     test "finishes on Finish event" do
       Dispatcher.listen_event_type(Saga.Started)
       id = launch_test_saga()
-      Dispatcher.dispatch(%Saga.Finish{id: id})
+      Dispatcher.dispatch(%Saga.Finish{saga_id: id})
       assert_condition(100, :error == Saga.get_pid(id))
     end
 
     test "dispatches Finished event on finish" do
       Dispatcher.listen_event_type(Saga.Finished)
       id = launch_test_saga()
-      Dispatcher.dispatch(%Saga.Finish{id: id})
-      assert_receive %Saga.Finished{id: ^id}
+      Dispatcher.dispatch(%Saga.Finish{saga_id: id})
+      assert_receive %Saga.Finished{saga_id: ^id}
     end
 
     test "dispatches Ended event on end" do
       Dispatcher.listen_event_type(Saga.Ended)
       id = launch_test_saga()
       Saga.end_saga(id)
-      assert_receive %Saga.Ended{id: ^id}
+      assert_receive %Saga.Ended{saga_id: ^id}
     end
 
     defmodule(CrashTestEvent1, do: defstruct([]))
@@ -97,7 +97,7 @@ defmodule Cizen.SagaTest do
       Dispatcher.dispatch(%CrashTestEvent2{})
 
       assert_receive %Saga.Crashed{
-        id: ^id,
+        saga_id: ^id,
         reason: %RuntimeError{},
         stacktrace: [{__MODULE__, _, _, _} | _]
       }
@@ -135,12 +135,12 @@ defmodule Cizen.SagaTest do
       id =
         launch_test_saga(
           init: fn id, state ->
-            Dispatcher.dispatch(%Saga.Finish{id: id})
+            Dispatcher.dispatch(%Saga.Finish{saga_id: id})
             state
           end
         )
 
-      assert_receive %Saga.Finished{id: ^id}
+      assert_receive %Saga.Finished{saga_id: ^id}
       assert_condition(100, :error == Saga.get_pid(id))
     end
 
@@ -157,7 +157,7 @@ defmodule Cizen.SagaTest do
 
       @impl true
       def handle_event(id, %TestEvent{}, :ok) do
-        Dispatcher.dispatch(%Saga.Started{id: id})
+        Dispatcher.dispatch(%Saga.Started{saga_id: id})
         :ok
       end
     end
@@ -166,9 +166,9 @@ defmodule Cizen.SagaTest do
       Dispatcher.listen_event_type(Saga.Started)
       id = SagaID.new()
       Saga.start_saga(id, %LazyLaunchSaga{}, nil)
-      refute_receive %Saga.Started{id: ^id}
+      refute_receive %Saga.Started{saga_id: ^id}
       Dispatcher.dispatch(%TestEvent{})
-      assert_receive %Saga.Started{id: ^id}
+      assert_receive %Saga.Started{saga_id: ^id}
     end
   end
 
@@ -274,7 +274,7 @@ defmodule Cizen.SagaTest do
       Dispatcher.listen_event_type(Saga.Started)
       saga_id = Saga.fork(%TestSaga{extra: :some_value})
       received = assert_receive %Saga.Started{}
-      assert saga_id == received.id
+      assert saga_id == received.saga_id
     end
 
     test "finishes when the given lifetime process exits" do
@@ -310,7 +310,7 @@ defmodule Cizen.SagaTest do
       Dispatcher.listen_event_type(Saga.Started)
       {:ok, pid} = Saga.start_link(%TestSaga{extra: :some_value})
 
-      assert_receive %Saga.Started{id: id}
+      assert_receive %Saga.Started{saga_id: id}
 
       assert {:ok, ^pid} = Saga.get_pid(id)
     end
@@ -476,7 +476,7 @@ defmodule Cizen.SagaTest do
           nil
         )
 
-      assert_receive %Saga.Resumed{id: ^saga_id}
+      assert_receive %Saga.Resumed{saga_id: ^saga_id}
     end
 
     defmodule TestSagaNoResume do

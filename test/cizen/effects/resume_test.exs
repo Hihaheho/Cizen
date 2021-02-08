@@ -43,7 +43,7 @@ defmodule Cizen.Effects.ResumeTest do
           Process.send_after(self(), :ok, 200)
 
           receive do
-            :ok -> Dispatcher.dispatch(%Saga.Resumed{id: id})
+            :ok -> Dispatcher.dispatch(%Saga.Resumed{saga_id: id})
           end
         end)
 
@@ -66,7 +66,7 @@ defmodule Cizen.Effects.ResumeTest do
           }
         end)
 
-      assert_receive %Saga.Resumed{id: ^id}, 30
+      assert_receive %Saga.Resumed{saga_id: ^id}, 30
     end
   end
 end

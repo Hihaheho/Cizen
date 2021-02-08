@@ -28,7 +28,7 @@ defmodule Cizen.Test do
 
             for :ok <- Stream.cycle([:ok]) do
               receive do
-                %Saga.Started{id: id} ->
+                %Saga.Started{saga_id: id} ->
                   Agent.update(agent, fn list -> [id | list] end)
               end
             end

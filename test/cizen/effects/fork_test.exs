@@ -55,6 +55,6 @@ defmodule Cizen.Effects.ForkTest do
 
     Dispatcher.dispatch(%TestEvent{})
 
-    assert_receive %Saga.Finished{id: ^forked}
+    assert_receive %Saga.Finished{saga_id: ^forked}
   end
 end

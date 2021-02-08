@@ -67,11 +67,11 @@ defmodule Cizen.AutomatonTest do
 
     test "does not finishes" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomatonNotFinish{}, self())
 
-      refute_receive %Saga.Finish{id: ^saga_id}
+      refute_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     defmodule TestAutomatonFinishOnSpawn do
@@ -90,11 +90,11 @@ defmodule Cizen.AutomatonTest do
 
     test "finishes when spawn/2 returns Automaton.finish()" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomatonFinishOnSpawn{}, self())
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     defmodule TestAutomaton do
@@ -134,7 +134,7 @@ defmodule Cizen.AutomatonTest do
 
     test "works with perform" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomaton{pid: self()}, self())
 
@@ -168,46 +168,46 @@ defmodule Cizen.AutomatonTest do
 
       assert_receive {:c, 3}
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     test "dispatches Saga.Started event after spawn/2" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
-      Dispatcher.listen(Filter.new(fn %Saga.Started{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomaton{pid: self()}, self())
 
       assert_receive :spawned
 
-      refute_receive %Saga.Started{id: ^saga_id}
+      refute_receive %Saga.Started{saga_id: ^saga_id}
 
       Dispatcher.dispatch(%TestEvent{
         value: :a,
         count: 1
       })
 
-      assert_receive %Saga.Started{id: ^saga_id}
+      assert_receive %Saga.Started{saga_id: ^saga_id}
     end
 
     test "dispatches Saga.Resumed event after respawn/2" do
       saga_id = SagaID.new()
       saga = %TestAutomaton{pid: self()}
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
-      Dispatcher.listen(Filter.new(fn %Saga.Resumed{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Resumed{saga_id: ^saga_id} -> true end))
 
       Saga.resume(saga_id, saga, nil)
 
       assert_receive :respawned
 
-      refute_receive %Saga.Resumed{id: ^saga_id}
+      refute_receive %Saga.Resumed{saga_id: ^saga_id}
 
       Dispatcher.dispatch(%TestEvent{
         value: :a,
         count: 1
       })
 
-      assert_receive %Saga.Resumed{id: ^saga_id}
+      assert_receive %Saga.Resumed{saga_id: ^saga_id}
     end
   end
 
@@ -248,16 +248,16 @@ defmodule Cizen.AutomatonTest do
 
     test "works with no yield/2" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Started{id: ^saga_id} -> true end))
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomatonNoYield{pid: self()}, self())
 
-      assert_receive %Saga.Started{id: ^saga_id}
+      assert_receive %Saga.Started{saga_id: ^saga_id}
 
       assert_receive :called
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     defmodule TestAutomatonFinishOnYield do
@@ -277,11 +277,11 @@ defmodule Cizen.AutomatonTest do
 
     test "finishes when yields Automaton.finish()" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start_saga(saga_id, %TestAutomatonFinishOnYield{}, self())
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     defmodule TestAutomatonCrash do
@@ -306,7 +306,7 @@ defmodule Cizen.AutomatonTest do
       Saga.start_saga(saga_id, %TestAutomatonCrash{}, self())
 
       assert_receive %Saga.Crashed{
-        id: ^saga_id,
+        saga_id: ^saga_id,
         reason: %RuntimeError{},
         stacktrace: [{TestAutomatonCrash, _, _, _} | _]
       }
@@ -359,7 +359,7 @@ defmodule Cizen.AutomatonTest do
       saga_id = Saga.fork(%TestAutomatonQueue{pid: pid})
 
       receive do
-        %Saga.Started{id: ^saga_id} -> :ok
+        %Saga.Started{saga_id: ^saga_id} -> :ok
       end
 
       Dispatcher.dispatch(%TestEvent{value: :a})
@@ -433,7 +433,7 @@ defmodule Cizen.AutomatonTest do
       Saga.start_saga(saga_id, %TestAutomatonABC{}, self())
 
       receive do
-        %Saga.Started{id: ^saga_id} -> :ok
+        %Saga.Started{saga_id: ^saga_id} -> :ok
       end
 
       Dispatcher.dispatch(%TestEvent{})
@@ -554,7 +554,7 @@ defmodule Cizen.AutomatonTest do
     test "finishes when respawn/3 returns Automaton.finish()" do
       saga_id = SagaID.new()
       saga = %TestAutomatonFinishOnRespawn{}
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       {:ok, _pid} =
         Saga.resume(
@@ -563,7 +563,7 @@ defmodule Cizen.AutomatonTest do
           3
         )
 
-      assert_receive %Saga.Finish{id: ^saga_id}
+      assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
 
     defmodule TestAutomatonNoRespawn do

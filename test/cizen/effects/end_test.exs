@@ -15,11 +15,15 @@ defmodule Cizen.Effects.EndTest do
       assert_handle(fn id ->
         saga_id = TestHelper.launch_test_saga()
 
-        perform(id, %Subscribe{event_filter: Filter.new(fn %Saga.Ended{id: ^saga_id} -> true end)})
+        perform(id, %Subscribe{
+          event_filter: Filter.new(fn %Saga.Ended{saga_id: ^saga_id} -> true end)
+        })
 
         assert saga_id == perform(id, %End{saga_id: saga_id})
 
-        perform(id, %Receive{event_filter: Filter.new(fn %Saga.Ended{id: ^saga_id} -> true end)})
+        perform(id, %Receive{
+          event_filter: Filter.new(fn %Saga.Ended{saga_id: ^saga_id} -> true end)
+        })
       end)
     end
   end

@@ -25,7 +25,7 @@ defmodule Cizen.CrashLogger do
     crashed_event = perform(id, %Receive{})
 
     %Saga.Crashed{
-      id: saga_id,
+      saga_id: saga_id,
       saga: saga,
       reason: reason,
       stacktrace: stacktrace

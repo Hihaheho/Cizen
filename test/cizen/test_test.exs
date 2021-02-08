@@ -48,7 +48,7 @@ defmodule Cizen.TestTest do
 
   test "assert_handle with timeout" do
     result =
-      assert_handle(10, fn id ->
+      assert_handle(15, fn id ->
         perform id, %Subscribe{
           event_filter: Filter.new(fn %TestEvent{} -> true end)
         }
