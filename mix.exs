@@ -105,6 +105,11 @@ defmodule Cizen.MixProject do
         Cizen.Event,
         Cizen.Filter
       ],
+      "Dispatcher Internal": [
+        Cizen.DefaultEventRouter,
+        Cizen.EventRouter,
+        Cizen.FilterDispatcher.PushEvent
+      ],
       Effects: [
         Cizen.Effects,
         Cizen.Effects.All,
@@ -116,7 +121,6 @@ defmodule Cizen.MixProject do
         Cizen.Effects.Monitor,
         Cizen.Effects.Race,
         Cizen.Effects.Receive,
-        Cizen.Effects.Request,
         Cizen.Effects.Resume,
         Cizen.Effects.Start,
         Cizen.Effects.Subscribe
@@ -127,17 +131,11 @@ defmodule Cizen.MixProject do
       Effectful: [
         Cizen.Effectful
       ],
-      Requesting: [
-        Cizen.Request,
-        Cizen.Request.Response
-      ],
       Saga: [
         Cizen.CizenSagaRegistry,
         Cizen.CrashLogger,
-        Cizen.EndSaga,
         Cizen.MonitorSaga,
         Cizen.MonitorSaga.Down,
-        Cizen.ResumeSaga,
         Cizen.Saga,
         Cizen.Saga.Crashed,
         Cizen.Saga.Finish,
@@ -147,15 +145,6 @@ defmodule Cizen.MixProject do
         Cizen.SagaID,
         Cizen.SagaMonitor,
         Cizen.SagaRegistry,
-        Cizen.StartSaga
-      ],
-      "Saga Internal": [
-        Cizen.SagaEnder,
-        Cizen.SagaLauncher,
-        Cizen.SagaLauncher.LaunchSaga,
-        Cizen.SagaLauncher.UnlaunchSaga,
-        Cizen.SagaResumer,
-        Cizen.SagaStarter
       ],
       Test: [
         Cizen.Test

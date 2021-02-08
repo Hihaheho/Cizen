@@ -4,7 +4,6 @@ defmodule Cizen.Effects.ForkTest do
 
   alias Cizen.Dispatcher
   alias Cizen.Effects.Fork
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
 
@@ -20,7 +19,7 @@ defmodule Cizen.Effects.ForkTest do
     @impl true
     def spawn(id, %__MODULE__{pid: pid}) do
       perform id, %Subscribe{
-        event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+        event_filter: Filter.new(fn %TestEvent{} -> true end)
       }
 
       forked =
@@ -54,8 +53,8 @@ defmodule Cizen.Effects.ForkTest do
 
     Dispatcher.listen_event_type(Saga.Finished)
 
-    Dispatcher.dispatch(Event.new(nil, %TestEvent{}))
+    Dispatcher.dispatch(%TestEvent{})
 
-    assert_receive %Event{body: %Saga.Finished{id: ^forked}}
+    assert_receive %Saga.Finished{id: ^forked}
   end
 end

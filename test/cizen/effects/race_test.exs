@@ -4,8 +4,7 @@ defmodule Cizen.Effects.RaceTest do
 
   alias Cizen.Automaton
   alias Cizen.Effect
-  alias Cizen.Effects.{Dispatch, Monitor, Race, Receive, Start, Subscribe}
-  alias Cizen.Event
+  alias Cizen.Effects.{Dispatch, Race, Start, Subscribe}
   alias Cizen.Filter
   alias Cizen.SagaID
 
@@ -47,7 +46,7 @@ defmodule Cizen.Effects.RaceTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       assert match?({:consume, _}, Effect.handle_event(id, event, effect, state))
     end
 
@@ -62,7 +61,7 @@ defmodule Cizen.Effects.RaceTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :ignored})
+      event = %TestEvent{value: :ignored}
       state = Effect.handle_event(id, event, effect, state)
       refute match?({:resolve, _}, state)
       refute match?({:consume, _}, state)
@@ -80,9 +79,9 @@ defmodule Cizen.Effects.RaceTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :d})
+      event = %TestEvent{value: :d}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, :b} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -107,9 +106,9 @@ defmodule Cizen.Effects.RaceTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :e})
+      event = %TestEvent{value: :e}
       assert {:resolve, :e} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -125,9 +124,9 @@ defmodule Cizen.Effects.RaceTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :d})
+      event = %TestEvent{value: :d}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, {:effect_b, :b}} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -139,7 +138,7 @@ defmodule Cizen.Effects.RaceTest do
       @impl true
       def spawn(id, struct) do
         perform(id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
 
         struct
@@ -164,10 +163,9 @@ defmodule Cizen.Effects.RaceTest do
 
     test "works with perform" do
       assert_handle(fn id ->
-        saga_id =
-          perform(id, %Start{
-            saga: %TestAutomaton{pid: self()}
-          })
+        perform(id, %Start{
+          saga: %TestAutomaton{pid: self()}
+        })
 
         perform(id, %Dispatch{
           body: %TestEvent{
@@ -182,10 +180,6 @@ defmodule Cizen.Effects.RaceTest do
         })
 
         assert_receive {:effect2, :b}
-
-        down_filter = perform(id, %Monitor{saga_id: saga_id})
-
-        perform(id, %Receive{event_filter: down_filter})
       end)
     end
   end

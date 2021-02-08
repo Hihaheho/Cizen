@@ -6,7 +6,7 @@ defmodule Cizen.TestTest do
   import ExUnit.Callbacks, only: [setup_all: 1, on_exit: 1]
 
   use Cizen.Effects
-  alias Cizen.{Dispatcher, Event, Filter}
+  alias Cizen.{Dispatcher, Filter}
   alias Cizen.SagaRegistry
 
   defmodule TestEvent do
@@ -35,12 +35,12 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn id ->
         perform id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         }
 
-        Dispatcher.dispatch(Event.new(nil, %TestEvent{value: 1}))
+        Dispatcher.dispatch(%TestEvent{value: 1})
         event = perform id, %Receive{}
-        event.body.value + 1
+        event.value + 1
       end)
 
     assert 2 == result
@@ -50,12 +50,12 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(10, fn id ->
         perform id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         }
 
-        Dispatcher.dispatch(Event.new(nil, %TestEvent{value: 1}))
+        Dispatcher.dispatch(%TestEvent{value: 1})
         event = perform id, %Receive{}
-        event.body.value + 1
+        event.value + 1
       end)
 
     assert 2 == result
@@ -73,12 +73,12 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn id ->
         perform id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         }
 
-        Dispatcher.dispatch(Event.new(nil, %TestEvent{value: 1}))
+        Dispatcher.dispatch(%TestEvent{value: 1})
         event = assert_perform(id, %Receive{})
-        event.body.value + 1
+        event.value + 1
       end)
 
     assert 2 == result
@@ -88,12 +88,12 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn id ->
         perform id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         }
 
-        Dispatcher.dispatch(Event.new(nil, %TestEvent{value: 1}))
+        Dispatcher.dispatch(%TestEvent{value: 1})
         event = assert_perform(10, id, %Receive{})
-        event.body.value + 1
+        event.value + 1
       end)
 
     assert 2 == result

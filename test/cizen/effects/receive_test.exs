@@ -5,12 +5,9 @@ defmodule Cizen.Effects.ReceiveTest do
   alias Cizen.Dispatcher
   alias Cizen.Effect
   alias Cizen.Effects.Receive
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
   alias Cizen.SagaID
-
-  alias Cizen.StartSaga
 
   defmodule(TestEvent1, do: defstruct([:value]))
   defmodule(TestEvent2, do: defstruct([:value]))
@@ -19,7 +16,7 @@ defmodule Cizen.Effects.ReceiveTest do
     id = SagaID.new()
 
     effect = %Receive{
-      event_filter: Filter.new(fn %Event{body: %TestEvent1{}} -> true end)
+      event_filter: Filter.new(fn %TestEvent1{} -> true end)
     }
 
     %{handler: id, effect: effect}
@@ -35,65 +32,14 @@ defmodule Cizen.Effects.ReceiveTest do
     test "resolves if matched", %{handler: id, effect: effect} do
       {_, state} = Effect.init(id, effect)
 
-      event = Event.new(nil, %TestEvent1{})
+      event = %TestEvent1{}
       assert {:resolve, ^event} = Effect.handle_event(id, event, effect, state)
-    end
-
-    test "does not resolve or consume a Response event", %{handler: id} do
-      alias Cizen.EventID
-      alias Cizen.Request
-      alias Cizen.SagaID
-
-      {effect, state} = Effect.init(id, %Receive{})
-
-      response_event = %Request.Response{
-        requestor_saga_id: SagaID.new(),
-        request_event_id: EventID.new(),
-        event: %TestEvent2{}
-      }
-
-      next = Effect.handle_event(id, Event.new(nil, response_event), effect, state)
-
-      refute match?(
-               {:resolve, _},
-               next
-             )
-
-      refute match?(
-               {:consume, _},
-               next
-             )
-    end
-
-    test "does not resolve or consume a Timeout event", %{handler: id} do
-      alias Cizen.EventID
-      alias Cizen.Request
-      alias Cizen.SagaID
-
-      {effect, state} = Effect.init(id, %Receive{})
-
-      timeout_event = %Request.Timeout{
-        requestor_saga_id: SagaID.new(),
-        request_event_id: EventID.new()
-      }
-
-      next = Effect.handle_event(id, Event.new(nil, timeout_event), effect, state)
-
-      refute match?(
-               {:resolve, _},
-               next
-             )
-
-      refute match?(
-               {:consume, _},
-               next
-             )
     end
 
     test "does not resolve or consume if not matched", %{handler: id, effect: effect} do
       {_, state} = Effect.init(id, effect)
 
-      next = Effect.handle_event(id, Event.new(nil, %TestEvent2{}), effect, state)
+      next = Effect.handle_event(id, %TestEvent2{}, effect, state)
 
       refute match?(
                {:resolve, _},
@@ -117,8 +63,8 @@ defmodule Cizen.Effects.ReceiveTest do
 
       @impl true
       def yield(id, %__MODULE__{pid: pid}) do
-        test_event1_filter = Filter.new(fn %Event{body: %TestEvent1{}} -> true end)
-        test_event2_filter = Filter.new(fn %Event{body: %TestEvent2{}} -> true end)
+        test_event1_filter = Filter.new(fn %TestEvent1{} -> true end)
+        test_event2_filter = Filter.new(fn %TestEvent2{} -> true end)
 
         Dispatcher.listen(id, test_event1_filter)
         Dispatcher.listen(id, test_event2_filter)
@@ -134,28 +80,23 @@ defmodule Cizen.Effects.ReceiveTest do
 
     test "works with Automaton" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Event{body: %Saga.Finish{id: ^saga_id}} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
 
-      Dispatcher.dispatch(
-        Event.new(nil, %StartSaga{
-          id: saga_id,
-          saga: %TestAutomaton{pid: self()}
-        })
-      )
+      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
       assert_receive :launched
 
-      event1 = Event.new(nil, %TestEvent1{value: 1})
+      event1 = %TestEvent1{value: 1}
       Dispatcher.dispatch(event1)
 
       assert_receive ^event1
 
-      event2 = Event.new(nil, %TestEvent2{value: 2})
+      event2 = %TestEvent2{value: 2}
       Dispatcher.dispatch(event2)
 
       assert_receive ^event2
 
-      assert_receive %Event{body: %Saga.Finish{id: ^saga_id}}
+      assert_receive %Saga.Finish{id: ^saga_id}
     end
   end
 end

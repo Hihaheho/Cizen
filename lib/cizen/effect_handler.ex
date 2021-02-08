@@ -5,7 +5,6 @@ defmodule Cizen.EffectHandler do
 
   alias Cizen.Effect
   alias Cizen.Event
-  alias Cizen.Request.Response
   alias Cizen.SagaID
 
   @type state :: %{
@@ -68,8 +67,6 @@ defmodule Cizen.EffectHandler do
         end
     end
   end
-
-  defp append_to_buffer(state, %Event{body: %Response{}}), do: state
 
   defp append_to_buffer(state, event) do
     event_buffer = state.event_buffer ++ [event]

@@ -12,25 +12,34 @@ defmodule Cizen.Effects.Start do
 
   @keys [:saga]
   @enforce_keys @keys
-  defstruct @keys
+  defstruct @keys ++ [:lifetime]
 
+  alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Effects.{Map, Request}
+  alias Cizen.Filter
+  alias Cizen.Saga
   alias Cizen.SagaID
 
-  alias Cizen.StartSaga
-
   use Effect
+  require Filter
 
   @impl true
-  def expand(_id, %__MODULE__{saga: saga}) do
+  def init(_, %__MODULE__{saga: saga, lifetime: lifetime}) do
     saga_id = SagaID.new()
 
-    %Map{
-      effect: %Request{
-        body: %StartSaga{id: saga_id, saga: saga}
-      },
-      transform: fn _ -> saga_id end
-    }
+    Task.async(fn ->
+      Dispatcher.listen(Filter.new(fn %Saga.Started{id: ^saga_id} -> true end))
+      Saga.start_saga(saga_id, saga, lifetime)
+
+      receive do
+        %Saga.Started{id: ^saga_id} -> :ok
+      end
+    end)
+    |> Task.await()
+
+    {:resolve, saga_id}
   end
+
+  @impl true
+  def handle_event(_, _, _, _), do: nil
 end

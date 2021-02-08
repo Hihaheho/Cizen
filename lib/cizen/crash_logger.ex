@@ -8,7 +8,6 @@ defmodule Cizen.CrashLogger do
   defstruct []
 
   alias Cizen.Effects.{Receive, Subscribe}
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
 
@@ -16,7 +15,7 @@ defmodule Cizen.CrashLogger do
 
   def spawn(id, %__MODULE__{}) do
     perform(id, %Subscribe{
-      event_filter: Filter.new(fn %Event{body: %Saga.Crashed{}} -> true end)
+      event_filter: Filter.new(fn %Saga.Crashed{} -> true end)
     })
 
     :loop
@@ -25,13 +24,11 @@ defmodule Cizen.CrashLogger do
   def yield(id, :loop) do
     crashed_event = perform(id, %Receive{})
 
-    %Event{
-      body: %Saga.Crashed{
-        id: saga_id,
-        reason: reason,
-        stacktrace: stacktrace
-      },
-      source_saga: saga
+    %Saga.Crashed{
+      id: saga_id,
+      saga: saga,
+      reason: reason,
+      stacktrace: stacktrace
     } = crashed_event
 
     message = """

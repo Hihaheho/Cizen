@@ -16,13 +16,11 @@ defmodule Cizen.Effects.Dispatch do
 
   alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Event
 
   use Effect
 
   @impl true
-  def init(handler, %__MODULE__{body: body}) do
-    event = Event.new(handler, body)
+  def init(_, %__MODULE__{body: event}) do
     Dispatcher.dispatch(event)
     {:resolve, event}
   end

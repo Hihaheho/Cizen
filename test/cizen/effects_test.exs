@@ -8,10 +8,8 @@ defmodule Cizen.EffectsTest do
     assert Code.ensure_loaded?(Dispatch)
     assert Code.ensure_loaded?(End)
     assert Code.ensure_loaded?(Fork)
-    assert Code.ensure_loaded?(Monitor)
     assert Code.ensure_loaded?(Race)
     assert Code.ensure_loaded?(Receive)
-    assert Code.ensure_loaded?(Request)
     assert Code.ensure_loaded?(Start)
     assert Code.ensure_loaded?(Subscribe)
 
@@ -29,10 +27,8 @@ defmodule Cizen.EffectsTest do
     assert Code.ensure_loaded?(Dispatch)
     assert Code.ensure_loaded?(End)
     refute Code.ensure_loaded?(Fork)
-    refute Code.ensure_loaded?(Monitor)
     refute Code.ensure_loaded?(Race)
     assert Code.ensure_loaded?(Receive)
-    refute Code.ensure_loaded?(Request)
     refute Code.ensure_loaded?(Start)
     refute Code.ensure_loaded?(Subscribe)
 

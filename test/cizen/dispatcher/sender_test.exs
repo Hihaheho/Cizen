@@ -1,14 +1,13 @@
 defmodule Cizen.Dispatcher.SenderTest do
   use ExUnit.Case
 
-  alias Cizen.Event
   alias Cizen.Dispatcher.{Node, Sender}
 
   defmodule(TestEvent, do: defstruct([]))
 
   setup do
     pid = self()
-    event = Event.new(nil, %TestEvent{})
+    event = %TestEvent{}
 
     subscriber1 =
       spawn(fn ->

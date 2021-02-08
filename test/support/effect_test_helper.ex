@@ -30,10 +30,10 @@ defmodule Cizen.EffectTestHelper do
     def handle_event(_handler, event, effect, _value) do
       %__MODULE__{value: value, ignores: ignores} = effect
 
-      if event.body.value == :ignored or event.body.value in ignores do
+      if event.value == :ignored or event.value in ignores do
         value
       else
-        if value == event.body.value do
+        if value == event.value do
           {:resolve, value}
         else
           {:consume, value}

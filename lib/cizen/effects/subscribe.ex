@@ -6,7 +6,7 @@ defmodule Cizen.Effects.Subscribe do
 
   ## Example
       perform id, %Subscribe{
-        event_filter: Filter.new(fn %Event{body: %SomeEvent{}} -> true end)
+        event_filter: Filter.new(fn %SomeEvent{} -> true end)
       }
   """
 

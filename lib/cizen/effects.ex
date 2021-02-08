@@ -24,7 +24,6 @@ defmodule Cizen.Effects do
     Monitor,
     Race,
     Receive,
-    Request,
     Start,
     Subscribe
   ]

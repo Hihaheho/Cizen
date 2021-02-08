@@ -13,11 +13,8 @@ defmodule Cizen.Effectful do
       end)
   """
 
-  alias Cizen.Dispatcher
-  alias Cizen.Event
+  alias Cizen.Saga
   alias Cizen.SagaID
-
-  alias Cizen.StartSaga
 
   defmacro __using__(_opts) do
     quote do
@@ -51,15 +48,14 @@ defmodule Cizen.Effectful do
       Task.async(fn ->
         pid = self()
 
-        Dispatcher.dispatch(
-          Event.new(nil, %StartSaga{
-            id: SagaID.new(),
-            saga: %InstantAutomaton{
-              block: fn id ->
-                send(pid, func.(id))
-              end
-            }
-          })
+        Saga.start_saga(
+          SagaID.new(),
+          %InstantAutomaton{
+            block: fn id ->
+              send(pid, func.(id))
+            end
+          },
+          pid
         )
 
         receive do

@@ -6,12 +6,9 @@ defmodule Cizen.Effects.ChainTest do
   alias Cizen.Dispatcher
   alias Cizen.Effect
   alias Cizen.Effects.Chain
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
   alias Cizen.SagaID
-
-  alias Cizen.StartSaga
 
   require Filter
 
@@ -63,7 +60,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, [:a, :b]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -77,7 +74,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert match?({:consume, _}, Effect.handle_event(id, event, effect, state))
     end
 
@@ -91,7 +88,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :ignored})
+      event = %TestEvent{value: :ignored}
       state = Effect.handle_event(id, event, effect, state)
       refute match?({:resolve, _}, state)
       refute match?({:consume, _}, state)
@@ -108,9 +105,9 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, [:a, :b]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -125,9 +122,9 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :ignored})
+      event = %TestEvent{value: :ignored}
       state = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, [:a, :b]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -142,7 +139,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       assert {:consume, _} = Effect.handle_event(id, event, effect, state)
     end
 
@@ -158,10 +155,10 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
 
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       {:resolve, [:a, :b, :c]} = Effect.handle_event(id, event, effect, state)
     end
 
@@ -175,7 +172,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, [:b]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -191,7 +188,7 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       assert {:resolve, [:a, :b, :c]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -213,9 +210,9 @@ defmodule Cizen.Effects.ChainTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       assert {:resolve, [:a, :b, :c]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -226,7 +223,7 @@ defmodule Cizen.Effects.ChainTest do
 
       @impl true
       def yield(id, %__MODULE__{pid: pid}) do
-        Dispatcher.listen(id, Filter.new(fn %Event{body: %TestEvent{}} -> true end))
+        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :launched)
 
@@ -247,32 +244,23 @@ defmodule Cizen.Effects.ChainTest do
 
     test "works with Automaton" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Event{body: %Saga.Finish{id: ^saga_id}} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
 
-      Dispatcher.dispatch(
-        Event.new(nil, %StartSaga{
-          id: saga_id,
-          saga: %TestAutomaton{pid: self()}
-        })
-      )
+      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
       assert_receive :launched
 
-      Dispatcher.dispatch(
-        Event.new(nil, %TestEvent{
-          value: :b
-        })
-      )
+      Dispatcher.dispatch(%TestEvent{
+        value: :b
+      })
 
-      Dispatcher.dispatch(
-        Event.new(nil, %TestEvent{
-          value: :c
-        })
-      )
+      Dispatcher.dispatch(%TestEvent{
+        value: :c
+      })
 
       assert_receive [:a, :b, :c]
 
-      assert_receive %Event{body: %Saga.Finish{id: ^saga_id}}
+      assert_receive %Saga.Finish{id: ^saga_id}
     end
   end
 end

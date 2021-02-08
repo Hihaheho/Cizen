@@ -3,7 +3,7 @@ defmodule Cizen.Automaton.Yield do
   An event fired when an automaton yields new state.
   """
 
-  @keys [:state]
+  @keys [:saga_id, :state]
   @enforce_keys @keys
   defstruct @keys
 end

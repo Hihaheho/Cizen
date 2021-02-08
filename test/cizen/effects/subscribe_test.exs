@@ -4,11 +4,9 @@ defmodule Cizen.Effects.SubscribeTest do
   alias Cizen.Automaton
   alias Cizen.Dispatcher
   alias Cizen.Effects.{Receive, Subscribe}
-  alias Cizen.Event
   alias Cizen.Filter
+  alias Cizen.Saga
   alias Cizen.SagaID
-
-  alias Cizen.StartSaga
 
   defmodule(TestEvent, do: defstruct([:value]))
 
@@ -23,14 +21,14 @@ defmodule Cizen.Effects.SubscribeTest do
         send(
           pid,
           perform(id, %Subscribe{
-            event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+            event_filter: Filter.new(fn %TestEvent{} -> true end)
           })
         )
 
         send(
           pid,
           perform(id, %Receive{
-            event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+            event_filter: Filter.new(fn %TestEvent{} -> true end)
           })
         )
 
@@ -41,15 +39,10 @@ defmodule Cizen.Effects.SubscribeTest do
     test "subscribes messages" do
       saga_id = SagaID.new()
 
-      Dispatcher.dispatch(
-        Event.new(nil, %StartSaga{
-          id: saga_id,
-          saga: %TestAutomaton{pid: self()}
-        })
-      )
+      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
       assert_receive :ok
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       Dispatcher.dispatch(event)
       assert_receive ^event
     end

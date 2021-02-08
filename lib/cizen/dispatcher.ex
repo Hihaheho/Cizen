@@ -5,7 +5,6 @@ defmodule Cizen.Dispatcher do
 
   alias Cizen.Dispatcher.{Intake, Node}
   alias Cizen.Event
-  alias Cizen.EventType
   alias Cizen.Filter
   alias Cizen.Saga
 
@@ -37,9 +36,9 @@ defmodule Cizen.Dispatcher do
   @doc """
   Listen the specific event type.
   """
-  @spec listen_event_type(EventType.t()) :: :ok
+  @spec listen_event_type(module) :: :ok
   def listen_event_type(event_type) do
-    listen(Filter.new(fn event -> event.body.__struct__ == event_type end))
+    listen(Filter.new(fn event -> event.__struct__ == event_type end))
   end
 
   @doc """

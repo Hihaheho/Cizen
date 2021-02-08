@@ -3,7 +3,6 @@ defmodule Cizen.EffectTest do
   alias Cizen.EffectTestHelper.TestEvent
 
   alias Cizen.Effect
-  alias Cizen.Event
   alias Cizen.SagaID
 
   defmodule TestEffect do
@@ -52,7 +51,7 @@ defmodule Cizen.EffectTest do
     test "returns the same result as the given effect" do
       id = SagaID.new()
       effect = %TestEffect{handle_event_value: :a}
-      event = Event.new(nil, %TestEvent{})
+      event = %TestEvent{}
       assert :a = Effect.handle_event(id, event, effect, :ok)
     end
   end

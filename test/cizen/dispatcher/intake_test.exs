@@ -2,12 +2,11 @@ defmodule Cizen.Dispatcher.IntakeTest do
   use ExUnit.Case
 
   alias Cizen.Dispatcher.Intake
-  alias Cizen.Event
 
   defmodule(TestEvent, do: defstruct([]))
 
   test "pushes an event to sender" do
-    event = Event.new(nil, %TestEvent{})
+    event = %TestEvent{}
 
     {sender_count, counter} = :persistent_term.get(Intake)
     index = :atomics.get(counter, 1)
@@ -22,7 +21,7 @@ defmodule Cizen.Dispatcher.IntakeTest do
   end
 
   test "increments index" do
-    event = Event.new(nil, %TestEvent{})
+    event = %TestEvent{}
 
     {_, counter} = :persistent_term.get(Intake)
     previous_index = :atomics.get(counter, 1)

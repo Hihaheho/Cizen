@@ -106,7 +106,7 @@ defmodule Cizen.Saga do
 
   defmodule Crashed do
     @moduledoc "A event fired on crash"
-    defstruct([:id, :reason, :stacktrace])
+    defstruct([:id, :saga, :reason, :stacktrace])
   end
 
   @doc """
@@ -163,16 +163,34 @@ defmodule Cizen.Saga do
     GenServer.start(__MODULE__, {:resume, id, saga, state, lifetime})
   end
 
-  def start_saga(id, saga, lifetime) do
+  @spec start_saga(SagaID.t(), t(), pid | nil) :: GenServer.on_start()
+  def start_saga(id, saga, lifetime \\ nil)
+  def start_saga(id, saga, lifetime) when is_pid(lifetime), do: do_start_saga(id, saga, lifetime)
+  def start_saga(id, saga, nil), do: do_start_saga(id, saga, nil)
+
+  def start_saga(id, saga, saga_id) do
+    case get_pid(saga_id) do
+      {:ok, pid} ->
+        do_start_saga(id, saga, pid)
+
+      _ ->
+        result = do_start_saga(id, saga, nil)
+        end_saga(id)
+        result
+    end
+  end
+
+  defp do_start_saga(id, saga, lifetime) do
     {:ok, _pid} = GenServer.start(__MODULE__, {:start, id, saga, lifetime})
   end
 
+  @spec end_saga(SagaID.t()) :: :ok
   def end_saga(id) do
     GenServer.stop({:via, Registry, {CizenSagaRegistry, id}}, :shutdown)
   catch
     :exit, _ -> :ok
   after
-    Dispatcher.dispatch(Event.new(nil, %Ended{id: id}))
+    Dispatcher.dispatch(%Ended{id: id})
   end
 
   def send_to(id, message) do
@@ -197,7 +215,7 @@ defmodule Cizen.Saga do
 
   defp init_with(id, saga, lifetime, event, function, arguments) do
     Registry.register(CizenSagaRegistry, id, saga)
-    Dispatcher.listen(Filter.new(fn %Event{body: %Finish{id: ^id}} -> true end))
+    Dispatcher.listen(Filter.new(fn %Finish{id: ^id} -> true end))
     module = module(saga)
 
     unless is_nil(lifetime), do: Process.monitor(lifetime)
@@ -208,7 +226,7 @@ defmodule Cizen.Saga do
           state
 
         state ->
-          Dispatcher.dispatch(Event.new(id, event))
+          Dispatcher.dispatch(event)
           state
       end
 
@@ -216,16 +234,8 @@ defmodule Cizen.Saga do
   end
 
   @impl true
-  def handle_info(%Event{body: %Finish{id: id}}, {id, module, state}) do
+  def handle_info(%Finish{id: id}, {id, module, state}) do
     {:stop, {:shutdown, :finish}, {id, module, state}}
-  end
-
-  @impl true
-  def handle_info(%Event{} = event, {id, module, state}) do
-    state = module.handle_event(id, event, state)
-    {:noreply, {id, module, state}}
-  rescue
-    reason -> {:stop, {:shutdown, {reason, __STACKTRACE__}}, {id, module, state}}
   end
 
   @impl true
@@ -234,17 +244,25 @@ defmodule Cizen.Saga do
   end
 
   @impl true
+  def handle_info(event, {id, module, state}) do
+    state = module.handle_event(id, event, state)
+    {:noreply, {id, module, state}}
+  rescue
+    reason -> {:stop, {:shutdown, {reason, __STACKTRACE__}}, {id, module, state}}
+  end
+
+  @impl true
   def terminate(:shutdown, {_id, _module, _state}) do
     :shutdown
   end
 
   def terminate({:shutdown, :finish}, {id, _module, _state}) do
-    dispatch_async(Event.new(id, %Finished{id: id}))
+    Dispatcher.dispatch(%Finished{id: id})
     :shutdown
   end
 
   def terminate({:shutdown, {reason, trace}}, {id, _module, _state}) do
-    dispatch_async(Event.new(id, %Crashed{id: id, reason: reason, stacktrace: trace}))
+    Dispatcher.dispatch(%Crashed{id: id, saga: get_saga(id), reason: reason, stacktrace: trace})
     :shutdown
   end
 
@@ -274,18 +292,5 @@ defmodule Cizen.Saga do
 
   def handle_request({:update_value, registry, key, callback}) do
     Registry.update_value(registry, key, fn {saga_id, value} -> {saga_id, callback.(value)} end)
-  end
-
-  defp dispatch_async(event) do
-    Task.start(fn ->
-      Dispatcher.listen(Filter.new(fn %Event{id: ^event.id} -> true end))
-      Dispatcher.dispatch(event)
-
-      receive do
-        _ -> :ok
-      after
-        60_000 -> :ok
-      end
-    end)
   end
 end

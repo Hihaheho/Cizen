@@ -3,7 +3,6 @@ defmodule Cizen.EventHandlerTest do
   alias Cizen.EffectHandlerTestHelper.{TestEffect, TestEvent}
 
   alias Cizen.EffectHandler
-  alias Cizen.Event
   alias Cizen.SagaID
 
   describe "init/3" do
@@ -25,7 +24,7 @@ defmodule Cizen.EventHandlerTest do
   end
 
   defp do_feed(state, body) do
-    EffectHandler.feed_event(state, Event.new(nil, body))
+    EffectHandler.feed_event(state, body)
   end
 
   describe "feed_event/3" do
@@ -79,7 +78,7 @@ defmodule Cizen.EventHandlerTest do
         |> do_feed(event_2)
 
       assert state.effect == %TestEffect{value: :a}
-      assert Enum.map(state.event_buffer, & &1.body) == [event_2]
+      assert Enum.map(state.event_buffer, & &1) == [event_2]
     end
 
     test "keep only not consumed events in the buffer", %{handler: state} do
@@ -96,7 +95,7 @@ defmodule Cizen.EventHandlerTest do
         |> do_feed(%TestEvent{value: :a, count: 3})
         |> do_feed(%TestEvent{value: :a, count: 3})
 
-      assert Enum.map(state.event_buffer, & &1.body) == [event_1, event_2]
+      assert Enum.map(state.event_buffer, & &1) == [event_1, event_2]
     end
 
     test "keep not consumed events in the buffer after resolve", %{handler: state} do
@@ -111,7 +110,7 @@ defmodule Cizen.EventHandlerTest do
         |> do_feed(event_2)
         |> do_perform(effect)
 
-      assert Enum.map(state.event_buffer, & &1.body) == [event_1, event_2]
+      assert Enum.map(state.event_buffer, & &1) == [event_1, event_2]
     end
 
     test "update the effect state", %{handler: initial_state} do
@@ -170,33 +169,6 @@ defmodule Cizen.EventHandlerTest do
         |> do_feed(%TestEvent{value: :b, count: 2})
 
       assert {:resolve, {:b, 2}, %{effect: nil, event_buffer: []}} = result
-    end
-
-    test "ignores ignored Response event", %{handler: state} do
-      alias Cizen.EventID
-      alias Cizen.Request.Response
-      alias Cizen.SagaID
-
-      result =
-        state
-        |> do_feed(%Response{
-          requestor_saga_id: SagaID.new(),
-          request_event_id: EventID.new(),
-          event: %TestEvent{}
-        })
-
-      assert %{effect: nil, event_buffer: []} = result
-
-      result =
-        state
-        |> do_perform(%TestEffect{value: :a})
-        |> do_feed(%Response{
-          requestor_saga_id: SagaID.new(),
-          request_event_id: EventID.new(),
-          event: %TestEvent{}
-        })
-
-      assert %{effect: %TestEffect{value: :a}, event_buffer: []} = result
     end
   end
 end

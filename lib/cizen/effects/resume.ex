@@ -15,20 +15,29 @@ defmodule Cizen.Effects.Resume do
   @enforce_keys [:id, :saga, :state]
   defstruct @enforce_keys
 
+  alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Effects.{Map, Request}
-
-  alias Cizen.ResumeSaga
+  alias Cizen.Filter
+  alias Cizen.Saga
 
   use Effect
+  require Filter
 
   @impl true
-  def expand(_id, %__MODULE__{id: saga_id, saga: saga, state: state}) do
-    %Map{
-      effect: %Request{
-        body: %ResumeSaga{id: saga_id, saga: saga, state: state}
-      },
-      transform: fn _ -> saga_id end
-    }
+  def init(_, %__MODULE__{id: saga_id, saga: saga, state: state}) do
+    Task.async(fn ->
+      Dispatcher.listen(Filter.new(fn %Saga.Resumed{id: ^saga_id} -> true end))
+      Saga.resume(saga_id, saga, state)
+
+      receive do
+        %Saga.Resumed{id: ^saga_id} -> :ok
+      end
+    end)
+    |> Task.await()
+
+    {:resolve, saga_id}
   end
+
+  @impl true
+  def handle_event(_, _, _, _), do: nil
 end

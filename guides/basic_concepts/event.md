@@ -11,18 +11,16 @@ A struct of `Cizen.Event` has the following four fields:
 
 ## Creating a Event
 
-You can create an event by using `Cizen.Event.new/2` like this:
+Any struct can be an event:
 
-    event = Cizen.Event.new(nil, %PushMessage{to: "user A"})
-
-The first argument is the source saga ID or `nil`, and the second argument is the event body.
+    event = %PushMessage{to: "user A"}
 
 ## Dispatching Event
 
 ### With Dispatcher
 
     Cizen.Dispatcher.dispatch(
-      Cizen.Event.new(nil, %PushMessage{to: "user A"})
+      %PushMessage{to: "user A"}
     )
 
 ### With Dispatch Effect
@@ -35,7 +33,3 @@ The first argument is the source saga ID or `nil`, and the second argument is th
         body: %PushMessage{to: "user A"}
       }
     end
-
-## Requestive Event
-
-You can make your event requestive. See `Cizen.Request.defresponse/3`.

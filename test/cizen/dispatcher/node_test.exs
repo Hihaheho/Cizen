@@ -132,6 +132,22 @@ defmodule Cizen.Dispatcher.NodeTest do
       Node.put(node, code, subscriber)
       refute_receive _
     end
+
+    test "removes assertion" do
+      subscriber = self()
+      {:ok, node} = Node.start_link()
+
+      %{code: code} = Filter.new(fn %TestEvent{} -> true end)
+      Node.put(node, code, subscriber)
+
+      assert %{
+               {:access, [:__struct__]} => %{
+                 TestEvent => next_node
+               }
+             } = :sys.get_state(node).operations
+
+      assert :sys.get_state(next_node).subscribers == MapSet.new([subscriber])
+    end
   end
 
   test "deletes the subscriber from subscribers when it downed" do

@@ -5,11 +5,9 @@ defmodule Cizen.Effects.MapTest do
   alias Cizen.Automaton
   alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
   alias Cizen.SagaID
-  alias Cizen.StartSaga
 
   require Filter
 
@@ -47,7 +45,7 @@ defmodule Cizen.Effects.MapTest do
       }
 
       {effect, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :a})
+      event = %TestEvent{value: :a}
       assert {:resolve, :transformed_a} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -60,7 +58,7 @@ defmodule Cizen.Effects.MapTest do
       }
 
       {effect, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:consume, {effect.effect, :a}} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -73,7 +71,7 @@ defmodule Cizen.Effects.MapTest do
       }
 
       {effect, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :ignored})
+      event = %TestEvent{value: :ignored}
       assert {effect.effect, :a} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -90,7 +88,7 @@ defmodule Cizen.Effects.MapTest do
 
       {effect, state} = Effect.init(id, effect)
       assert {effect.effect.alias_of, :b} == state
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert {:resolve, :transformed_b} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -101,7 +99,7 @@ defmodule Cizen.Effects.MapTest do
 
       @impl true
       def yield(id, %__MODULE__{pid: pid}) do
-        Dispatcher.listen(id, Filter.new(fn %Event{body: %TestEvent{}} -> true end))
+        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :launched)
 
@@ -127,40 +125,29 @@ defmodule Cizen.Effects.MapTest do
 
     test "transforms the result" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Event{body: %Saga.Finish{id: ^saga_id}} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
 
-      Dispatcher.dispatch(
-        Event.new(nil, %StartSaga{
-          id: saga_id,
-          saga: %TestAutomaton{pid: self()}
-        })
-      )
+      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
       assert_receive :launched
 
       assert_receive :transformed_a
 
-      Dispatcher.dispatch(
-        Event.new(nil, %TestEvent{
-          value: :c
-        })
-      )
+      Dispatcher.dispatch(%TestEvent{
+        value: :c
+      })
 
-      Dispatcher.dispatch(
-        Event.new(nil, %TestEvent{
-          value: :ignored
-        })
-      )
+      Dispatcher.dispatch(%TestEvent{
+        value: :ignored
+      })
 
-      Dispatcher.dispatch(
-        Event.new(nil, %TestEvent{
-          value: :b
-        })
-      )
+      Dispatcher.dispatch(%TestEvent{
+        value: :b
+      })
 
       assert_receive :transformed_b
 
-      assert_receive %Event{body: %Saga.Finish{id: ^saga_id}}
+      assert_receive %Saga.Finish{id: ^saga_id}
     end
   end
 end

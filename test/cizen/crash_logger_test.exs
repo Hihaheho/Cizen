@@ -4,7 +4,6 @@ defmodule Cizen.CrashLoggerTest do
   alias Cizen.TestHelper
 
   alias Cizen.Dispatcher
-  alias Cizen.Event
   alias Cizen.Filter
 
   require Filter
@@ -17,7 +16,7 @@ defmodule Cizen.CrashLoggerTest do
         init: fn _id, _state ->
           Dispatcher.listen_event_type(CrashTestEvent)
         end,
-        handle_event: fn _id, %Event{body: body}, state ->
+        handle_event: fn _id, body, state ->
           case body do
             %CrashTestEvent{} ->
               raise "Crash!!!"
@@ -30,11 +29,13 @@ defmodule Cizen.CrashLoggerTest do
 
     output =
       capture_log(fn ->
-        Dispatcher.dispatch(Event.new(nil, %CrashTestEvent{}))
+        Dispatcher.dispatch(%CrashTestEvent{})
         :timer.sleep(100)
         require Logger
         Logger.flush()
       end)
+
+    IO.puts(output)
 
     assert output =~ "saga #{saga_id} is crashed"
     assert output =~ "%Cizen.TestSaga{"

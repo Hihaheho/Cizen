@@ -4,8 +4,7 @@ defmodule Cizen.Effects.AllTest do
 
   alias Cizen.Automaton
   alias Cizen.Effect
-  alias Cizen.Effects.{All, Dispatch, Monitor, Receive, Start, Subscribe}
-  alias Cizen.Event
+  alias Cizen.Effects.{All, Dispatch, Start, Subscribe}
   alias Cizen.Filter
   alias Cizen.SagaID
 
@@ -58,7 +57,7 @@ defmodule Cizen.Effects.AllTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       assert match?({:consume, _}, Effect.handle_event(id, event, effect, state))
     end
 
@@ -73,7 +72,7 @@ defmodule Cizen.Effects.AllTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :ignored})
+      event = %TestEvent{value: :ignored}
       state = Effect.handle_event(id, event, effect, state)
       refute match?({:resolve, _}, state)
       refute match?({:consume, _}, state)
@@ -91,9 +90,9 @@ defmodule Cizen.Effects.AllTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :b})
+      event = %TestEvent{value: :b}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       assert {:resolve, [:a, :b, :c]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -118,9 +117,9 @@ defmodule Cizen.Effects.AllTest do
       }
 
       {_, state} = Effect.init(id, effect)
-      event = Event.new(nil, %TestEvent{value: :c})
+      event = %TestEvent{value: :c}
       {:consume, state} = Effect.handle_event(id, event, effect, state)
-      event = Event.new(nil, %TestEvent{value: :d})
+      event = %TestEvent{value: :d}
       assert {:resolve, [:b, :c, :d]} == Effect.handle_event(id, event, effect, state)
     end
 
@@ -132,7 +131,7 @@ defmodule Cizen.Effects.AllTest do
       @impl true
       def spawn(id, struct) do
         perform(id, %Subscribe{
-          event_filter: Filter.new(fn %Event{body: %TestEvent{}} -> true end)
+          event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
 
         struct
@@ -157,10 +156,9 @@ defmodule Cizen.Effects.AllTest do
 
     test "works with perform" do
       assert_handle(fn id ->
-        saga_id =
-          perform(id, %Start{
-            saga: %TestAutomaton{pid: self()}
-          })
+        perform(id, %Start{
+          saga: %TestAutomaton{pid: self()}
+        })
 
         perform(id, %Dispatch{
           body: %TestEvent{
@@ -175,10 +173,6 @@ defmodule Cizen.Effects.AllTest do
         })
 
         assert_receive [:a, :b, :d]
-
-        down_filter = perform(id, %Monitor{saga_id: saga_id})
-
-        perform(id, %Receive{event_filter: down_filter})
       end)
     end
   end

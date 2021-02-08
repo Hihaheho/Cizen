@@ -15,21 +15,17 @@ defmodule Cizen.Effects.End do
   defstruct @keys
 
   alias Cizen.Effect
-  alias Cizen.Effects.{Dispatch, Map}
-
-  alias Cizen.EndSaga
+  alias Cizen.Saga
 
   use Effect
 
   @impl true
-  def expand(_id, %__MODULE__{saga_id: saga_id}) do
-    %Map{
-      effect: %Dispatch{
-        body: %EndSaga{
-          id: saga_id
-        }
-      },
-      transform: fn _response -> saga_id end
-    }
+  def init(_, %__MODULE__{saga_id: saga_id}) do
+    Saga.end_saga(saga_id)
+
+    {:resolve, saga_id}
   end
+
+  @impl true
+  def handle_event(_, _, _, _), do: nil
 end

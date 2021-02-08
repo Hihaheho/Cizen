@@ -14,8 +14,7 @@ defmodule Cizen.Test do
 
       setup do
         alias Cizen.Saga
-        alias Cizen.SagaLauncher
-        alias Cizen.{Dispatcher, Event}
+        alias Cizen.{Dispatcher}
         alias Cizen.Test
 
         {:ok, agent} = Agent.start(fn -> [] end)
@@ -24,12 +23,12 @@ defmodule Cizen.Test do
 
         {:ok, task} =
           Task.start(fn ->
-            Dispatcher.listen_event_type(SagaLauncher.LaunchSaga)
+            Dispatcher.listen_event_type(Saga.Started)
             send(pid, :ok)
 
             for :ok <- Stream.cycle([:ok]) do
               receive do
-                %Event{body: %SagaLauncher.LaunchSaga{id: id}} ->
+                %Saga.Started{id: id} ->
                   Agent.update(agent, fn list -> [id | list] end)
               end
             end

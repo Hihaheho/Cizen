@@ -5,24 +5,24 @@ defmodule Cizen.Filter do
   ## Basic
 
       Filter.new(
-        fn %Event{body: %SomeEvent{field: value}} ->
+        fn %SomeEvent{field: value} ->
           value == :a
         end
       )
 
       Filter.new(
-        fn %Event{body: %SomeEvent{field: :a}} -> true end
+        fn %SomeEvent{field: :a} -> true end
       )
 
       value = :a
       Filter.new(
-        fn %Event{body: %SomeEvent{field: ^value}} -> true end
+        fn %SomeEvent{field: ^value} -> true end
       )
 
   ## With guard
 
       Filter.new(
-        fn %Event{source_saga_id: source} when not is_nil(source) -> true end
+        fn %SomeEvent{value: number} when is_number(number) -> true end
       )
 
   ## Matches all
@@ -32,13 +32,13 @@ defmodule Cizen.Filter do
   ## Matches the specific type of struct
 
       Filter.new(
-        fn %Event{source_saga: %SomeSaga{}} -> true end
+        fn %SomeEvent{} -> true end
       )
 
   ## Compose filters
 
       Filter.new(
-        fn %Event{body: %SomeEvent{field: value}} ->
+        fn %SomeEvent{field: value} ->
           Filter.match?(other_filter, value)
         end
       )
@@ -46,15 +46,15 @@ defmodule Cizen.Filter do
   ## Multiple filters
 
       Filter.any([
-        Filter.new(fn %Event{body: %Resolve{id: id}} -> id == "some id" end),
-        Filter.new(fn %Event{body: %Reject{id: id}} -> id == "some id" end)
+        Filter.new(fn %Resolve{id: id} -> id == "some id" end),
+        Filter.new(fn %Reject{id: id} -> id == "some id" end)
       ])
 
   ## Multiple cases
 
       Filter.new(fn
-        %Event{body: %SomeEvent{field: :ignore}} -> false
-        %Event{body: %SomeEvent{field: value}} -> true
+        %SomeEvent{field: :ignore} -> false
+        %SomeEvent{field: value} -> true
       end)
   """
 
@@ -62,7 +62,6 @@ defmodule Cizen.Filter do
 
   defstruct code: true
 
-  alias Cizen.Event
   alias Cizen.Filter.Code
 
   @doc """
@@ -88,7 +87,7 @@ defmodule Cizen.Filter do
     end)
     |> Elixir.Code.eval_quoted([], __CALLER__)
 
-    code = filter |> Code.generate(__CALLER__) |> remove_assertion()
+    code = filter |> Code.generate(__CALLER__)
 
     quote do
       %unquote(__MODULE__){
@@ -96,20 +95,6 @@ defmodule Cizen.Filter do
       }
     end
   end
-
-  defp remove_assertion(
-         {:and,
-          [{:and, [{:is_map, [{:access, []}]}, {:==, [{:access, [:__struct__]}, Event]}]}, second]}
-       ),
-       do: remove_assertion(second)
-
-  defp remove_assertion({:and, [{:is_map, [{:access, [:body]}]}, second]}),
-    do: second
-
-  defp remove_assertion({:and, [first, second]}),
-    do: {:and, [remove_assertion(first), second]}
-
-  defp remove_assertion(code), do: code
 
   @doc """
   Checks whether the given struct matches or not.

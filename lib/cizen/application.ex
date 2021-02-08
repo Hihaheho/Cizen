@@ -53,9 +53,6 @@ defmodule Cizen.Application do
     alias Cizen.Saga
 
     daemon_sagas = [
-      %Cizen.SagaStarter{},
-      %Cizen.SagaEnder{},
-      %Cizen.RequestResponseMediator{},
       %Cizen.CrashLogger{}
     ]
 

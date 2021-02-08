@@ -85,6 +85,10 @@ defmodule Cizen.Dispatcher.Node do
     update_operation(ctx, operation, false, next)
   end
 
+  defp run(ctx, {:update, {:and, [{:is_map, [{:access, []}]}, right]}, next}) do
+    run(ctx, {:update, right, next})
+  end
+
   defp run(ctx, {:update, {:and, [left, right]}, next}) do
     run(ctx, {:update, left, {:update, right, next}})
   end

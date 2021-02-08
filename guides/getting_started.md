@@ -71,17 +71,16 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       defstruct [:stack]
 
       use Cizen.Effects # to use All, Subscribe, Receive, and Dispatch
-      alias Cizen.Event
       alias Cizen.Filter
 
       @impl true
       def spawn(id, %__MODULE__{stack: stack}) do
         perform id, %All{effects: [
           %Subscribe{event_filter: Filter.new(
-            fn %Event{body: %Push{}} -> true end
+            fn %Push{} -> true end
           )},
           %Subscribe{event_filter: Filter.new(
-            fn %Event{body: %Pop{}} -> true end
+            fn %Pop{} -> true end
           )}
         ]}
 
@@ -92,7 +91,7 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       def yield(id, stack) do
         event = perform id, %Receive{}
 
-        case event.body do
+        case event do
           %Push{item: item} ->
             [item | stack] # next state
 
@@ -124,10 +123,10 @@ The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
 
     perform id, %All{effects: [
       %Subscribe{event_filter: Filter.new(
-        fn %Event{body: %Push{}} -> true end
+        fn %Push{} -> true end
       )},
       %Subscribe{event_filter: Filter.new(
-        fn %Event{body: %Pop{}} -> true end
+        fn %Pop{} -> true end
       )}
     ]}
 
@@ -163,7 +162,7 @@ Now, we can interact with the automaton and events like this:
           item_event = perform id, %Request{
             body: %Pop{}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => a
 
           perform id, %Dispatch{
@@ -177,13 +176,13 @@ Now, we can interact with the automaton and events like this:
           item_event = perform id, %Request{
             body: %Pop{}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => c
 
           item_event = perform id, %Request{
             body: %Pop{}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => b
         end
       end
@@ -218,12 +217,12 @@ Next, use the filters on subscribe in `Stack.spawn/2`:
     def spawn(id, %__MODULE__{stack: stack}) do
       perform id, %All{effects: [
         %Subscribe{event_filter: Filter.new(
-          fn %Event{body: %Push{stack_id: stack_id}} ->
+          fn %Push{stack_id: stack_id} ->
             stack_id == id
           end
         )},
         %Subscribe{event_filter: Filter.new(
-          fn %Event{body: %Pop{stack_id: stack_id}} ->
+          fn %Pop{stack_id: stack_id} ->
             stack_id == id
           end
         )},
@@ -265,21 +264,21 @@ Finally, we can handle multiple stacks like this:
           item_event = perform id, %Request{
             body: %Pop{stack_id: stack_a}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => a
 
           # pop from the stack B
           item_event = perform id, %Request{
             body: %Pop{stack_id: stack_b}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => c
 
           # pop from the stack B
           item_event = perform id, %Request{
             body: %Pop{stack_id: stack_b}
           }
-          %Pop.Item{item: item} = item_event.body
+          %Pop.Item{item: item} = item_event
           IO.puts(item) # => b
         end
       end

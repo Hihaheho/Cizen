@@ -2,7 +2,6 @@ defmodule Cizen.EffectfulTest do
   use Cizen.SagaCase
 
   alias Cizen.Dispatcher
-  alias Cizen.Event
   alias Cizen.Filter
 
   alias Cizen.Effects.{Dispatch}
@@ -42,7 +41,7 @@ defmodule Cizen.EffectfulTest do
         TestModule.dispatch(%TestEvent{value: :somevalue})
       end)
 
-      assert_receive %Event{body: %TestEvent{value: :somevalue}}
+      assert_receive %TestEvent{value: :somevalue}
     end
 
     test "blocks the current thread" do
@@ -65,7 +64,7 @@ defmodule Cizen.EffectfulTest do
 
     test "works with other messages" do
       pid = self()
-      filter = Filter.new(fn %Event{body: %TestEvent{value: a}} -> a == 1 end)
+      filter = Filter.new(fn %TestEvent{value: a} -> a == 1 end)
 
       task =
         Task.async(fn ->
@@ -89,9 +88,9 @@ defmodule Cizen.EffectfulTest do
         :subscribed -> :ok
       end
 
-      send(task.pid, Event.new(nil, %TestEvent{value: 2}))
-      Dispatcher.dispatch(Event.new(nil, %TestEvent{value: 1}))
-      assert %Event{body: %TestEvent{value: 1}} = Task.await(task)
+      send(task.pid, %TestEvent{value: 2})
+      Dispatcher.dispatch(%TestEvent{value: 1})
+      assert %TestEvent{value: 1} = Task.await(task)
     end
   end
 end

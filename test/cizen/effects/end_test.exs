@@ -2,7 +2,11 @@ defmodule Cizen.Effects.EndTest do
   use Cizen.SagaCase
   alias Cizen.TestHelper
 
-  alias Cizen.Effects.{End, Monitor, Receive}
+  alias Cizen.Effects.{End, Receive, Subscribe}
+  alias Cizen.Filter
+  alias Cizen.Saga
+
+  require Filter
 
   defmodule(TestEvent, do: defstruct([:value]))
 
@@ -11,11 +15,11 @@ defmodule Cizen.Effects.EndTest do
       assert_handle(fn id ->
         saga_id = TestHelper.launch_test_saga()
 
-        down_filter = perform(id, %Monitor{saga_id: saga_id})
+        perform(id, %Subscribe{event_filter: Filter.new(fn %Saga.Ended{id: ^saga_id} -> true end)})
 
         assert saga_id == perform(id, %End{saga_id: saga_id})
 
-        perform(id, %Receive{event_filter: down_filter})
+        perform(id, %Receive{event_filter: Filter.new(fn %Saga.Ended{id: ^saga_id} -> true end)})
       end)
     end
   end

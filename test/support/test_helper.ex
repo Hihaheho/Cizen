@@ -2,38 +2,37 @@ defmodule Cizen.TestHelper do
   @moduledoc false
   import ExUnit.Assertions, only: [flunk: 0]
 
-  alias Cizen.{Dispatcher, Event, Filter}
+  alias Cizen.{Dispatcher, Filter}
   alias Cizen.Saga
   alias Cizen.SagaID
-  alias Cizen.SagaLauncher
   alias Cizen.TestSaga
 
   require Filter
 
   def launch_test_saga(opts \\ []) do
     saga_id = SagaID.new()
+    pid = self()
 
     task =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %Event{body: %Saga.Started{id: ^saga_id}} -> true end))
+        Dispatcher.listen(Filter.new(fn %Saga.Started{id: ^saga_id} -> true end))
 
-        Dispatcher.dispatch(
-          Event.new(nil, %SagaLauncher.LaunchSaga{
-            id: saga_id,
-            saga: %TestSaga{
-              init: fn id, state ->
-                init = Keyword.get(opts, :init, fn _id, state -> state end)
-                state = init.(id, state)
-                state
-              end,
-              handle_event: Keyword.get(opts, :handle_event, fn _id, _event, state -> state end),
-              extra: Keyword.get(opts, :extra, nil)
-            }
-          })
+        Saga.start_saga(
+          saga_id,
+          %TestSaga{
+            init: fn id, state ->
+              init = Keyword.get(opts, :init, fn _id, state -> state end)
+              state = init.(id, state)
+              state
+            end,
+            handle_event: Keyword.get(opts, :handle_event, fn _id, _event, state -> state end),
+            extra: Keyword.get(opts, :extra, nil)
+          },
+          pid
         )
 
         receive do
-          %Event{body: %Saga.Started{}} -> :ok
+          %Saga.Started{} -> :ok
         after
           1000 -> flunk()
         end
@@ -81,11 +80,6 @@ defmodule Cizen.TestHelper do
   end
 
   def surpress_crash_log do
-    use Cizen.Effectful
-    alias Cizen.Effects.Start
-
-    handle(fn id ->
-      perform(id, %Start{saga: %CrashLogSurpressor{}})
-    end)
+    Saga.fork(%CrashLogSurpressor{})
   end
 end

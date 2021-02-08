@@ -3,7 +3,6 @@ defmodule Cizen.DispatcherTest do
   alias Cizen.TestHelper
 
   alias Cizen.Dispatcher
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.SagaID
   require Cizen.Filter
@@ -25,22 +24,22 @@ defmodule Cizen.DispatcherTest do
       Task.async(fn ->
         Dispatcher.listen_all()
         send(pid, :task1)
-        assert_receive %Event{body: %TestEvent{value: :a}}
-        assert_receive %Event{body: %TestEvent{value: :b}}
+        assert_receive %TestEvent{value: :a}
+        assert_receive %TestEvent{value: :b}
       end)
 
     task2 =
       Task.async(fn ->
         Dispatcher.listen_all()
         send(pid, :task2)
-        assert_receive %Event{body: %TestEvent{value: :a}}
-        assert_receive %Event{body: %TestEvent{value: :b}}
+        assert_receive %TestEvent{value: :a}
+        assert_receive %TestEvent{value: :b}
       end)
 
     wait_until_receive(:task1)
     wait_until_receive(:task2)
-    Dispatcher.dispatch(Event.new(nil, %TestEvent{value: :a}))
-    Dispatcher.dispatch(Event.new(nil, %TestEvent{value: :b}))
+    Dispatcher.dispatch(%TestEvent{value: :a})
+    Dispatcher.dispatch(%TestEvent{value: :b})
     Task.await(task1)
     Task.await(task2)
   end
@@ -55,8 +54,8 @@ defmodule Cizen.DispatcherTest do
       Task.async(fn ->
         Dispatcher.listen_event_type(TestEventA)
         send(pid, :task1)
-        assert_receive %Event{body: %TestEventA{value: :a}}
-        refute_receive %Event{body: %TestEventB{value: :b}}
+        assert_receive %TestEventA{value: :a}
+        refute_receive %TestEventB{value: :b}
       end)
 
     task2 =
@@ -64,14 +63,14 @@ defmodule Cizen.DispatcherTest do
         Dispatcher.listen_event_type(TestEventA)
         Dispatcher.listen_event_type(TestEventB)
         send(pid, :task2)
-        assert_receive %Event{body: %TestEventA{value: :a}}
-        assert_receive %Event{body: %TestEventB{value: :b}}
+        assert_receive %TestEventA{value: :a}
+        assert_receive %TestEventB{value: :b}
       end)
 
     wait_until_receive(:task1)
     wait_until_receive(:task2)
-    Dispatcher.dispatch(Event.new(nil, %TestEventA{value: :a}))
-    Dispatcher.dispatch(Event.new(nil, %TestEventB{value: :b}))
+    Dispatcher.dispatch(%TestEventA{value: :a})
+    Dispatcher.dispatch(%TestEventB{value: :b})
     Task.await(task1)
     Task.await(task2)
   end
@@ -81,25 +80,25 @@ defmodule Cizen.DispatcherTest do
 
     task1 =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %Event{body: %TestEventA{}} -> true end))
+        Dispatcher.listen(Filter.new(fn %TestEventA{} -> true end))
         send(pid, :task1)
-        assert_receive %Event{body: %TestEventA{}}
-        refute_receive %Event{body: %TestEventB{}}
+        assert_receive %TestEventA{}
+        refute_receive %TestEventB{}
       end)
 
     task2 =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %Event{body: %TestEventA{}} -> true end))
-        Dispatcher.listen(Filter.new(fn %Event{body: %TestEventB{}} -> true end))
+        Dispatcher.listen(Filter.new(fn %TestEventA{} -> true end))
+        Dispatcher.listen(Filter.new(fn %TestEventB{} -> true end))
         send(pid, :task2)
-        assert_receive %Event{body: %TestEventA{}}
-        assert_receive %Event{body: %TestEventB{}}
+        assert_receive %TestEventA{}
+        assert_receive %TestEventB{}
       end)
 
     wait_until_receive(:task1)
     wait_until_receive(:task2)
-    Dispatcher.dispatch(Event.new(nil, %TestEventA{}))
-    Dispatcher.dispatch(Event.new(nil, %TestEventB{}))
+    Dispatcher.dispatch(%TestEventA{})
+    Dispatcher.dispatch(%TestEventB{})
     Task.await(task1)
     Task.await(task2)
   end
@@ -111,15 +110,15 @@ defmodule Cizen.DispatcherTest do
       TestHelper.launch_test_saga(
         handle_event: fn _id, event, _state ->
           case event do
-            %Event{body: %TestEventA{}} ->
+            %TestEventA{} ->
               send(pid, :received)
           end
         end
       )
 
-    Dispatcher.listen(saga_id, Filter.new(fn %Event{body: %TestEventA{}} -> true end))
+    Dispatcher.listen(saga_id, Filter.new(fn %TestEventA{} -> true end))
 
-    Dispatcher.dispatch(Event.new(nil, %TestEventA{}))
+    Dispatcher.dispatch(%TestEventA{})
 
     wait_until_receive(:received)
   end
@@ -128,6 +127,6 @@ defmodule Cizen.DispatcherTest do
     saga_id = SagaID.new()
 
     assert :ok ==
-             Dispatcher.listen(saga_id, Filter.new(fn %Event{body: %TestEventA{}} -> true end))
+             Dispatcher.listen(saga_id, Filter.new(fn %TestEventA{} -> true end))
   end
 end

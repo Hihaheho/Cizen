@@ -5,7 +5,6 @@ defmodule Cizen.Automaton do
 
   alias Cizen.Dispatcher
   alias Cizen.EffectHandler
-  alias Cizen.Event
   alias Cizen.Saga
   alias Cizen.SagaID
 
@@ -110,7 +109,7 @@ defmodule Cizen.Automaton do
   Note that `perform/2` does not work only on the current process.
   """
   def perform(id, effect) do
-    event = Event.new(id, %PerformEffect{handler: id, effect: effect})
+    event = %PerformEffect{handler: id, effect: effect}
     Dispatcher.dispatch(event)
     Saga.send_to(id, event)
 
@@ -120,11 +119,11 @@ defmodule Cizen.Automaton do
   end
 
   defp do_yield(module, id, state) do
-    Dispatcher.dispatch(Event.new(id, %Yield{state: state}))
+    Dispatcher.dispatch(%Yield{saga_id: id, state: state})
 
     case state do
       @finish ->
-        Dispatcher.dispatch(Event.new(id, %Saga.Finish{id: id}))
+        Dispatcher.dispatch(%Saga.Finish{id: id})
 
       state ->
         state = module.yield(id, state)
@@ -147,7 +146,7 @@ defmodule Cizen.Automaton do
       spawn_link(fn ->
         try do
           state = apply(module, function, arguments)
-          Dispatcher.dispatch(Event.new(id, event))
+          Dispatcher.dispatch(event)
           do_yield(module, id, state)
         rescue
           reason -> Saga.exit(id, reason, __STACKTRACE__)
@@ -159,7 +158,7 @@ defmodule Cizen.Automaton do
     {Saga.lazy_init(), {pid, handler_state}}
   end
 
-  def handle_event(_id, %Event{body: %PerformEffect{effect: effect}}, {pid, handler}) do
+  def handle_event(_id, %PerformEffect{effect: effect}, {pid, handler}) do
     handle_result(pid, EffectHandler.perform_effect(handler, effect))
   end
 

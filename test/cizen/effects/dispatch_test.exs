@@ -6,12 +6,9 @@ defmodule Cizen.Effects.DispatchTest do
   alias Cizen.Dispatcher
   alias Cizen.Effect
   alias Cizen.Effects.Dispatch
-  alias Cizen.Event
   alias Cizen.Filter
   alias Cizen.Saga
   alias Cizen.SagaID
-
-  alias Cizen.StartSaga
 
   require Filter
 
@@ -32,8 +29,8 @@ defmodule Cizen.Effects.DispatchTest do
 
     test "resolves and dispatches an event on init", %{handler: id, effect: effect, body: body} do
       Dispatcher.listen_event_type(TestEvent)
-      assert {:resolve, %Event{body: ^body}} = Effect.init(id, effect)
-      assert_receive %Event{body: ^body}
+      assert {:resolve, ^body} = Effect.init(id, effect)
+      assert_receive ^body
     end
 
     defmodule TestAutomaton do
@@ -53,22 +50,17 @@ defmodule Cizen.Effects.DispatchTest do
     test "works with Automaton" do
       saga_id = SagaID.new()
       Dispatcher.listen_event_type(TestEvent)
-      Dispatcher.listen(Filter.new(fn %Event{body: %Saga.Finish{id: ^saga_id}} -> true end))
+      Dispatcher.listen(Filter.new(fn %Saga.Finish{id: ^saga_id} -> true end))
 
-      Dispatcher.dispatch(
-        Event.new(nil, %StartSaga{
-          id: saga_id,
-          saga: %TestAutomaton{pid: self()}
-        })
-      )
+      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
 
-      event_a = assert_receive %Event{body: %TestEvent{value: :a}}
+      event_a = assert_receive %TestEvent{value: :a}
       assert_receive ^event_a
 
-      event_b = assert_receive %Event{body: %TestEvent{value: :b}}
+      event_b = assert_receive %TestEvent{value: :b}
       assert_receive ^event_b
 
-      assert_receive %Event{body: %Saga.Finish{id: ^saga_id}}
+      assert_receive %Saga.Finish{id: ^saga_id}
     end
   end
 end
