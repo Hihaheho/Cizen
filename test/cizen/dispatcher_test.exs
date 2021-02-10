@@ -108,7 +108,7 @@ defmodule Cizen.DispatcherTest do
 
     saga_id =
       TestHelper.launch_test_saga(
-        handle_event: fn _id, event, _state ->
+        handle_event: fn event, _state ->
           case event do
             %TestEventA{} ->
               send(pid, :received)

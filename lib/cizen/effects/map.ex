@@ -5,7 +5,7 @@ defmodule Cizen.Effects.Map do
   Returns the transformed result.
 
   ## Example
-      perform id, %Map{
+      perform %Map{
         effect: some_effect,
         transform: fn result -> transformed_result end
       }

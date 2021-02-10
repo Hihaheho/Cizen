@@ -14,12 +14,12 @@ We call the defined struct "saga struct" and use it for starting sagas and filte
       defstruct [:some_field]
 
       @impl true
-      def init(id, %__MODULE__{some_field: value}) do
+      def on_start(%__MODULE__{some_field: value}) do
         # Initialize and returns a next state
       end
 
       @impl true
-      def handle_event(id, event, state) do
+      def handle_event(event, state) do
         # Handle events and returns a next state
       end
     end
@@ -35,8 +35,8 @@ We call the defined struct "saga struct" and use it for starting sagas and filte
     use Cizen.Effectful
     use Cizen.Effects
 
-    handle fn id ->
-      started_saga_id = perform id, %Start{saga: %SomeSaga{some_field: :some_value}}
+    handle fn ->
+      started_saga_id = perform %Start{saga: %SomeSaga{some_field: :some_value}}
     end
 
 ## As a Part of a Supervision Tree

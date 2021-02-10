@@ -17,15 +17,15 @@ defmodule Cizen.Effects.ForkTest do
     use Cizen.Effects
 
     @impl true
-    def spawn(id, %__MODULE__{pid: pid}) do
-      perform id, %Subscribe{
+    def spawn(%__MODULE__{pid: pid}) do
+      perform(%Subscribe{
         event_filter: Filter.new(fn %TestEvent{} -> true end)
-      }
+      })
 
       forked =
-        perform id, %Fork{
+        perform(%Fork{
           saga: %TestSaga{}
-        }
+        })
 
       send(pid, forked)
 
@@ -33,8 +33,8 @@ defmodule Cizen.Effects.ForkTest do
     end
 
     @impl true
-    def yield(id, :next) do
-      perform id, %Receive{}
+    def yield(:next) do
+      perform %Receive{}
       Automaton.finish()
     end
   end
@@ -42,8 +42,8 @@ defmodule Cizen.Effects.ForkTest do
   test "forked saga finishes after forker saga finishes" do
     pid = self()
 
-    assert_handle(fn id ->
-      perform id, %Start{saga: %TestAutomaton{pid: pid}}
+    assert_handle(fn ->
+      perform(%Start{saga: %TestAutomaton{pid: pid}})
     end)
 
     forked =

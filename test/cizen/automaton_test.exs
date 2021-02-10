@@ -9,35 +9,18 @@ defmodule Cizen.AutomatonTest do
   alias Cizen.Saga
   alias Cizen.SagaID
 
-  alias Cizen.Automaton.PerformEffect
-
   require Filter
 
   defmodule(UnknownEvent, do: defstruct([]))
 
-  describe "perform/2" do
-    test "dispatches PerformEffect event" do
-      import Automaton, only: [perform: 2]
-
-      Dispatcher.listen_event_type(PerformEffect)
-      saga_id = TestHelper.launch_test_saga()
-      effect = %TestEffect{value: :a}
-
-      spawn_link(fn ->
-        perform(saga_id, effect)
-      end)
-
-      assert_receive %PerformEffect{handler: ^saga_id, effect: ^effect}
-    end
-
+  describe "perform/1" do
     test "block until message is coming and returns the message" do
-      import Automaton, only: [perform: 2]
+      import Automaton, only: [perform: 1]
       current = self()
-      saga_id = TestHelper.launch_test_saga()
 
       pid =
         spawn_link(fn ->
-          assert :value == perform(saga_id, %TestEffect{value: :a})
+          assert :value == perform(%TestEffect{value: :a})
           send(current, :ok)
         end)
 
@@ -54,12 +37,12 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-      def spawn(_id, state) do
+      def spawn(state) do
         state
       end
 
       @impl true
-      def yield(_id, state) do
+      def yield(state) do
         :timer.sleep(100)
         state
       end
@@ -80,12 +63,12 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-      def spawn(_id, %__MODULE__{}) do
+      def spawn(%__MODULE__{}) do
         Automaton.finish()
       end
 
       @impl true
-      def yield(_id, _state), do: :ok
+      def yield(_state), do: :ok
     end
 
     test "finishes when spawn/2 returns Automaton.finish()" do
@@ -103,31 +86,31 @@ defmodule Cizen.AutomatonTest do
       defstruct [:pid]
 
       @impl true
-      def spawn(id, %__MODULE__{pid: pid}) do
-        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
+      def spawn(%__MODULE__{pid: pid}) do
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :spawned)
-        send(pid, perform(id, %TestEffect{value: :a}))
+        send(pid, perform(%TestEffect{value: :a}))
         {:b, pid}
       end
 
       @impl true
-      def respawn(id, %__MODULE__{pid: pid}, _) do
-        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
+      def respawn(%__MODULE__{pid: pid}, _) do
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :respawned)
-        send(pid, perform(id, %TestEffect{value: :a}))
+        send(pid, perform(%TestEffect{value: :a}))
         {:b, pid}
       end
 
       @impl true
-      def yield(id, {:b, pid}) do
-        send(pid, perform(id, %TestEffect{value: :b}))
+      def yield({:b, pid}) do
+        send(pid, perform(%TestEffect{value: :b}))
         {:c, pid}
       end
 
-      def yield(id, {:c, pid}) do
-        send(pid, perform(id, %TestEffect{value: :c}))
+      def yield({:c, pid}) do
+        send(pid, perform(%TestEffect{value: :c}))
         Automaton.finish()
       end
     end
@@ -219,7 +202,7 @@ defmodule Cizen.AutomatonTest do
 
       @impl true
 
-      def yield(_id, %__MODULE__{pid: pid}) do
+      def yield(%__MODULE__{pid: pid}) do
         send(pid, :called)
         Automaton.finish()
       end
@@ -240,7 +223,7 @@ defmodule Cizen.AutomatonTest do
 
       @impl true
 
-      def spawn(_id, %__MODULE__{pid: pid}) do
+      def spawn(%__MODULE__{pid: pid}) do
         send(pid, :called)
         Automaton.finish()
       end
@@ -266,11 +249,11 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-      def yield(_id, %__MODULE__{}) do
+      def yield(%__MODULE__{}) do
         :next
       end
 
-      def yield(_id, :next) do
+      def yield(:next) do
         Automaton.finish()
       end
     end
@@ -291,7 +274,7 @@ defmodule Cizen.AutomatonTest do
 
       @impl true
 
-      def spawn(_id, %__MODULE__{}) do
+      def spawn(%__MODULE__{}) do
         raise "Crash!!!"
         Automaton.finish()
       end
@@ -317,8 +300,8 @@ defmodule Cizen.AutomatonTest do
       defstruct [:pid]
 
       @impl true
-      def spawn(id, state) do
-        perform(id, %Subscribe{
+      def spawn(state) do
+        perform(%Subscribe{
           event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
 
@@ -326,24 +309,24 @@ defmodule Cizen.AutomatonTest do
       end
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
+      def yield(%__MODULE__{pid: pid}) do
         send(
           pid,
-          perform(id, %Receive{
+          perform(%Receive{
             event_filter: Filter.new(fn %TestEvent{value: :a} -> true end)
           })
         )
 
         send(
           pid,
-          perform(id, %Receive{
+          perform(%Receive{
             event_filter: Filter.new(fn %TestEvent{value: :c} -> true end)
           })
         )
 
         send(
           pid,
-          perform(id, %Receive{
+          perform(%Receive{
             event_filter: Filter.new(fn %TestEvent{value: :b} -> true end)
           })
         )
@@ -377,8 +360,8 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-      def spawn(id, %__MODULE__{}) do
-        perform(id, %Subscribe{
+      def spawn(%__MODULE__{}) do
+        perform(%Subscribe{
           event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
 
@@ -386,20 +369,20 @@ defmodule Cizen.AutomatonTest do
       end
 
       @impl true
-      def yield(id, :a) do
-        perform(id, %Receive{})
+      def yield(:a) do
+        perform(%Receive{})
         :b
       end
 
       @impl true
-      def yield(id, :b) do
-        perform(id, %Receive{})
+      def yield(:b) do
+        perform(%Receive{})
         :c
       end
 
       @impl true
-      def yield(id, :c) do
-        perform(id, %Receive{})
+      def yield(:c) do
+        perform(%Receive{})
         Automaton.finish()
       end
     end
@@ -450,20 +433,20 @@ defmodule Cizen.AutomatonTest do
       defstruct [:value]
 
       @impl true
-      def spawn(_id, saga) do
+      def spawn(saga) do
         Dispatcher.dispatch(%TestEvent{value: {:called_spawn, saga}})
         :a
       end
 
       @impl true
-      def respawn(_id, saga, state) do
+      def respawn(saga, state) do
         Dispatcher.dispatch(%TestEvent{value: {:called_respawn, saga, state}})
         state + 2
       end
 
       @impl true
-      def yield(id, state) do
-        perform(id, %Receive{})
+      def yield(state) do
+        perform(%Receive{})
         Dispatcher.dispatch(%TestEvent{value: {:called_yield, state}})
         state
       end
@@ -543,12 +526,12 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-      def respawn(_id, %__MODULE__{}, _state) do
+      def respawn(%__MODULE__{}, _state) do
         Automaton.finish()
       end
 
       @impl true
-      def yield(_id, _state), do: :ok
+      def yield(_state), do: :ok
     end
 
     test "finishes when respawn/3 returns Automaton.finish()" do
@@ -572,12 +555,12 @@ defmodule Cizen.AutomatonTest do
       defstruct []
 
       @impl true
-
-      def spawn(_id, %__MODULE__{}) do
+      def spawn(%__MODULE__{}) do
         :spawn_state
       end
 
-      def yield(_id, {:resume_state, pid}) do
+      @impl true
+      def yield({:resume_state, pid}) do
         send(pid, :called)
         Automaton.finish()
       end

@@ -98,14 +98,14 @@ defmodule Cizen.Effects.MapTest do
       defstruct [:pid]
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
-        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
+      def yield(%__MODULE__{pid: pid}) do
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :launched)
 
         send(
           pid,
-          perform(id, %Map{
+          perform(%Map{
             effect: %TestEffect{value: :a, resolve_immediately: true},
             transform: fn :a -> :transformed_a end
           })
@@ -113,7 +113,7 @@ defmodule Cizen.Effects.MapTest do
 
         send(
           pid,
-          perform(id, %Map{
+          perform(%Map{
             effect: %TestEffect{value: :b},
             transform: fn :b -> :transformed_b end
           })

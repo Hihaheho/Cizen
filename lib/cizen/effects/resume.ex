@@ -5,7 +5,7 @@ defmodule Cizen.Effects.Resume do
   Returns the resumed saga ID.
 
   ## Example
-      ^some_saga_id = perform id, %Resume{
+      ^some_saga_id = perform %Resume{
         id: some_saga_id,
         saga: some_saga_struct,
         state: some_saga_state,

@@ -9,7 +9,7 @@ The automaton will work like the following implementation with `GenServer`:
       use GenServer
 
       @impl true
-      def init(stack) do
+      def on_start(stack) do
         {:ok, stack}
       end
 
@@ -74,8 +74,8 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       alias Cizen.Filter
 
       @impl true
-      def spawn(id, %__MODULE__{stack: stack}) do
-        perform id, %All{effects: [
+      def spawn(%__MODULE__{stack: stack}) do
+        perform %All{effects: [
           %Subscribe{event_filter: Filter.new(
             fn %Push{} -> true end
           )},
@@ -88,8 +88,8 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       end
 
       @impl true
-      def yield(id, stack) do
-        event = perform id, %Receive{}
+      def yield(stack) do
+        event = perform %Receive{}
 
         case event do
           %Push{item: item} ->
@@ -98,7 +98,7 @@ Next, we define an automaton which handles the `Push` and `Pop`.
           %Pop{} ->
             [item | tail] = stack
 
-            perform id, %Dispatch{
+            perform %Dispatch{
               body: %Pop.Item{item: item, pop_event_id: event.id}
             }
 
@@ -115,13 +115,13 @@ and they'll called with the following lifecycle:
 
 > The first argument of the two callbacks is a saga ID, and we'll use it [later](#multiple-stacks) in this guide.
 
-`Cizen.Automaton.perform/2` performs the given effect synchronously and returns the result of the effect.
+`Cizen.Automaton.perform/1` performs the given effect synchronously and returns the result of the effect.
 
 > See [Effect](effect.html) for details.
 
 The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
 
-    perform id, %All{effects: [
+    perform %All{effects: [
       %Subscribe{event_filter: Filter.new(
         fn %Push{} -> true end
       )},
@@ -140,7 +140,7 @@ and `Receive` effect dequeues the first event from the queue.
 In the following code in `yield/2`, we assign `event.id` to `:pop_event_id`
 to link the `Pop.Item` event with the received `Pop` event:
 
-    perform id, %Dispatch{
+    perform %Dispatch{
       body: %Pop.Item{item: item, pop_event_id: event.id}
     }
 
@@ -153,33 +153,33 @@ Now, we can interact with the automaton and events like this:
         use Cizen.Effectful
         use Cizen.Effects
 
-        handle fn id ->
+        handle fn ->
           # start stack
-          perform id, %Start{
+          perform %Start{
             saga: %Stack{stack: [:a]}
           }
 
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{}
           }
           %Pop.Item{item: item} = item_event
           IO.puts(item) # => a
 
-          perform id, %Dispatch{
+          perform %Dispatch{
             body: %Push{item: :b}
           }
 
-          perform id, %Dispatch{
+          perform %Dispatch{
             body: %Push{item: :c}
           }
 
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{}
           }
           %Pop.Item{item: item} = item_event
           IO.puts(item) # => c
 
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{}
           }
           %Pop.Item{item: item} = item_event
@@ -214,8 +214,8 @@ First, add `:stack_id` and definitions of event body filters in the events:
 
 Next, use the filters on subscribe in `Stack.spawn/2`:
 
-    def spawn(id, %__MODULE__{stack: stack}) do
-      perform id, %All{effects: [
+    def spawn(%__MODULE__{stack: stack}) do
+      perform %All{effects: [
         %Subscribe{event_filter: Filter.new(
           fn %Push{stack_id: stack_id} ->
             stack_id == id
@@ -238,44 +238,44 @@ Finally, we can handle multiple stacks like this:
         use Cizen.Effectful
         use Cizen.Effects
 
-        handle fn id ->
+        handle fn ->
           # start stack A
-          stack_a = perform id, %Start{saga: %Stack{stack: []}}
+          stack_a = perform %Start{saga: %Stack{stack: []}}
 
           # start stack B
-          stack_b = perform id, %Start{saga: %Stack{stack: []}}
+          stack_b = perform %Start{saga: %Stack{stack: []}}
 
           # push to the stack A
-          perform id, %Dispatch{
+          perform %Dispatch{
             body: %Push{stack_id: stack_a, item: :a}
           }
 
           # push to the stack B
-          perform id, %Dispatch{
+          perform %Dispatch{
             body: %Push{stack_id: stack_b, item: :b}
           }
 
           # push to the stack B
-          perform id, %Dispatch{
+          perform %Dispatch{
             body: %Push{stack_id: stack_b, item: :c}
           }
 
           # pop from the stack A
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{stack_id: stack_a}
           }
           %Pop.Item{item: item} = item_event
           IO.puts(item) # => a
 
           # pop from the stack B
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{stack_id: stack_b}
           }
           %Pop.Item{item: item} = item_event
           IO.puts(item) # => c
 
           # pop from the stack B
-          item_event = perform id, %Request{
+          item_event = perform %Request{
             body: %Pop{stack_id: stack_b}
           }
           %Pop.Item{item: item} = item_event

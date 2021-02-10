@@ -9,8 +9,8 @@ You can create a handle block like this:
 
     use Effectful # to use handle/1
 
-    handle fn id ->
-      perform id, some_effect
+    handle fn ->
+      perform some_effect
     end
 
 ## Pre-defined Effects

@@ -5,7 +5,7 @@ defmodule Cizen.Effects.End do
   Returns the saga ID.
 
   ## Example
-      saga_id = perform id, %End{
+      saga_id = perform %End{
         saga_id: some_saga_id
       }
   """

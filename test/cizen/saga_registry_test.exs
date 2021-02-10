@@ -48,7 +48,8 @@ defmodule Cizen.SagaRegistryTest do
       pid = self()
 
       TestHelper.launch_test_saga(
-        init: fn id, _ ->
+        on_start: fn _ ->
+          id = Saga.self()
           SagaRegistry.register(__MODULE__, id, :a, :value_a)
           send(pid, :registered)
         end
@@ -116,7 +117,8 @@ defmodule Cizen.SagaRegistryTest do
       pid = self()
 
       TestHelper.launch_test_saga(
-        init: fn id, _ ->
+        on_start: fn _ ->
+          id = Saga.self()
           SagaRegistry.register(__MODULE__, id, :c, :value_c)
           SagaRegistry.unregister(__MODULE__, id, :c)
           send(pid, :unregistered)
@@ -141,7 +143,8 @@ defmodule Cizen.SagaRegistryTest do
 
       id =
         TestHelper.launch_test_saga(
-          init: fn id, _ ->
+          on_start: fn _ ->
+            id = Saga.self()
             SagaRegistry.register(__MODULE__, id, :c, 1)
             SagaRegistry.update_value(__MODULE__, id, :c, fn value -> value + 1 end)
             send(pid, :updated)

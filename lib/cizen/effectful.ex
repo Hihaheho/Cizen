@@ -5,21 +5,20 @@ defmodule Cizen.Effectful do
   ## Example
       use Cizen.Effectful
 
-      handle(fn id ->
-        some_result = perform id, some_effect
+      handle(fn ->
+        some_result = perform some_effect
         if some_result do
-          perform id, other_effect
+          perform other_effect
         end
       end)
   """
 
   alias Cizen.Saga
-  alias Cizen.SagaID
 
   defmacro __using__(_opts) do
     quote do
       import Cizen.Effectful, only: [handle: 1]
-      import Cizen.Automaton, only: [perform: 2]
+      import Cizen.Automaton, only: [perform: 1]
       require Cizen.Filter
     end
   end
@@ -32,13 +31,13 @@ defmodule Cizen.Effectful do
     defstruct [:block]
 
     @impl true
-    def spawn(_id, struct) do
+    def spawn(struct) do
       struct
     end
 
     @impl true
-    def yield(id, %__MODULE__{block: block}) do
-      block.(id)
+    def yield(%__MODULE__{block: block}) do
+      block.()
       Automaton.finish()
     end
   end
@@ -46,22 +45,16 @@ defmodule Cizen.Effectful do
   def handle(func) do
     task =
       Task.async(fn ->
-        pid = self()
-
-        Saga.start_saga(
-          SagaID.new(),
-          %InstantAutomaton{
-            block: fn id ->
-              send(pid, func.(id))
-            end
-          },
-          pid
-        )
-
         receive do
           result -> result
         end
       end)
+
+    Saga.fork(%InstantAutomaton{
+      block: fn ->
+        send(task.pid, func.())
+      end
+    })
 
     Task.await(task, :infinity)
   end

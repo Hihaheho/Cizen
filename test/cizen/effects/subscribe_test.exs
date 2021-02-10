@@ -17,17 +17,17 @@ defmodule Cizen.Effects.SubscribeTest do
       defstruct [:pid]
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
+      def yield(%__MODULE__{pid: pid}) do
         send(
           pid,
-          perform(id, %Subscribe{
+          perform(%Subscribe{
             event_filter: Filter.new(fn %TestEvent{} -> true end)
           })
         )
 
         send(
           pid,
-          perform(id, %Receive{
+          perform(%Receive{
             event_filter: Filter.new(fn %TestEvent{} -> true end)
           })
         )

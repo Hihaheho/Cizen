@@ -2,6 +2,7 @@
 locals_without_parens = [
   handle: 1,
   perform: 2,
+  perform: 1,
   defeventbodyfilter: 2,
   defsagafilter: 2
 ]

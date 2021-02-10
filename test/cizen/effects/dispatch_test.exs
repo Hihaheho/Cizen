@@ -39,9 +39,9 @@ defmodule Cizen.Effects.DispatchTest do
       defstruct [:pid]
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
-        send(pid, perform(id, %Dispatch{body: %TestEvent{value: :a}}))
-        send(pid, perform(id, %Dispatch{body: %TestEvent{value: :b}}))
+      def yield(%__MODULE__{pid: pid}) do
+        send(pid, perform(%Dispatch{body: %TestEvent{value: :a}}))
+        send(pid, perform(%Dispatch{body: %TestEvent{value: :b}}))
 
         Automaton.finish()
       end

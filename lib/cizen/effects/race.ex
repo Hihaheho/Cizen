@@ -3,7 +3,7 @@ defmodule Cizen.Effects.Race do
   An effect to run a race for the given effects.
 
   ## Anonymous race
-      perform id, %Race{
+      perform %Race{
         effects: [
           effect1,
           effect2
@@ -13,7 +13,7 @@ defmodule Cizen.Effects.Race do
       # the race returns the :somevalue
 
   ## Named Race
-      perform id, %Race{
+      perform %Race{
         effects: [
           effect1: effect1,
           effect2: effect2

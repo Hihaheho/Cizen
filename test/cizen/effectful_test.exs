@@ -12,13 +12,13 @@ defmodule Cizen.EffectfulTest do
     use Cizen.Effectful
 
     def dispatch(body) do
-      handle(fn id ->
-        perform(id, %Dispatch{body: body})
+      handle(fn ->
+        perform %Dispatch{body: body}
       end)
     end
 
     def block do
-      handle(fn _id ->
+      handle(fn ->
         # Block
         receive do
           _ -> :ok
@@ -27,7 +27,7 @@ defmodule Cizen.EffectfulTest do
     end
 
     def return(value) do
-      handle(fn _id ->
+      handle(fn ->
         value
       end)
     end
@@ -70,16 +70,16 @@ defmodule Cizen.EffectfulTest do
         Task.async(fn ->
           send(
             pid,
-            handle(fn id ->
-              perform id, %Subscribe{
+            handle(fn ->
+              perform(%Subscribe{
                 event_filter: filter
-              }
+              })
 
               send(pid, :subscribed)
 
-              perform id, %Receive{
+              perform(%Receive{
                 event_filter: filter
-              }
+              })
             end)
           )
         end)

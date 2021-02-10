@@ -7,11 +7,11 @@ defmodule Cizen.Effects.Receive do
   If the `event_filter` is omitted, this receives all events.
 
   ## Example
-      perform id, %Subscribe{
+      perform %Subscribe{
         event_filter: Filter.new(fn %SomeEvent{} -> true end)
       }
 
-      perform id, %Receive{
+      perform %Receive{
         event_filter: Filter.new(fn %SomeEvent{} -> true end)
       }
   """

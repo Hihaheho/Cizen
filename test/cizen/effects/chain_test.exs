@@ -222,14 +222,14 @@ defmodule Cizen.Effects.ChainTest do
       defstruct [:pid]
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
-        Dispatcher.listen(id, Filter.new(fn %TestEvent{} -> true end))
+      def yield(%__MODULE__{pid: pid}) do
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
 
         send(pid, :launched)
 
         send(
           pid,
-          perform(id, %Chain{
+          perform(%Chain{
             effects: [
               %TestEffect{value: :a, resolve_immediately: true},
               fn :a -> %TestEffect{value: :b} end,

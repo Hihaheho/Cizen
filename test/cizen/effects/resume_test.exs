@@ -18,15 +18,15 @@ defmodule Cizen.Effects.ResumeTest do
       state = :some_state
 
       assert ^saga_id =
-               assert_handle(fn id ->
-                 perform id, %Resume{
+               assert_handle(fn ->
+                 perform(%Resume{
                    id: saga_id,
                    saga: %TestSaga{
-                     resume: fn id, saga, state -> send(pid, {id, saga, state}) end,
+                     on_resume: fn saga, state -> send(pid, {Saga.self(), saga, state}) end,
                      extra: 42
                    },
                    state: state
-                 }
+                 })
                end)
 
       assert_receive {^saga_id, %TestSaga{extra: 42}, ^state}
@@ -38,12 +38,12 @@ defmodule Cizen.Effects.ResumeTest do
       defstruct []
 
       @impl true
-      def init(id, _) do
+      def on_start(_) do
         spawn_link(fn ->
           Process.send_after(self(), :ok, 200)
 
           receive do
-            :ok -> Dispatcher.dispatch(%Saga.Resumed{saga_id: id})
+            :ok -> Dispatcher.dispatch(%Saga.Resumed{saga_id: Saga.self()})
           end
         end)
 
@@ -51,19 +51,19 @@ defmodule Cizen.Effects.ResumeTest do
       end
 
       @impl true
-      def handle_event(_, _, state), do: state
+      def handle_event(_, state), do: state
     end
 
     test "waits a Resumed event" do
       Dispatcher.listen(Filter.new(fn %Saga.Resumed{} -> true end))
 
       id =
-        assert_handle(fn id ->
-          perform id, %Resume{
+        assert_handle(fn ->
+          perform(%Resume{
             id: SagaID.new(),
             saga: %DelayedSaga{},
             state: :some_state
-          }
+          })
         end)
 
       assert_receive %Saga.Resumed{saga_id: ^id}, 30

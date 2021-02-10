@@ -28,8 +28,8 @@ Any struct can be an event:
     use Cizen.Effectful
     use Cizen.Effects
 
-    handle fn id ->
-      dispatched_event = perform id, %Dispatch{
+    handle fn ->
+      dispatched_event = perform %Dispatch{
         body: %PushMessage{to: "user A"}
       }
     end

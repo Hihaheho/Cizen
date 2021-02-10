@@ -9,12 +9,12 @@ defmodule Cizen.Saga do
         defstruct []
 
         @impl true
-        def init(_id, %__MODULE__{}) do
+        def on_start(%__MODULE__{}) do
           saga
         end
 
         @impl true
-        def handle_event(_id, _event, state) do
+        def handle_event(_event, state) do
           state
         end
       end
@@ -39,14 +39,14 @@ defmodule Cizen.Saga do
 
   Returned value will be used as the next state to pass `c:handle_event/3` callback.
   """
-  @callback init(SagaID.t(), t()) :: state
+  @callback on_start(t()) :: state
 
   @doc """
   Invoked when the saga receives an event.
 
   Returned value will be used as the next state to pass `c:handle_event/3` callback.
   """
-  @callback handle_event(SagaID.t(), Event.t(), state) :: state
+  @callback handle_event(Event.t(), state) :: state
 
   @doc """
   Invoked when the saga is resumed.
@@ -55,42 +55,37 @@ defmodule Cizen.Saga do
 
   This callback is predefined. The default implementation is here:
   ```
-  def resume(id, saga, state) do
-    init(id, saga)
+  def on_resume(saga, state) do
+    on_start(saga)
     state
   end
   ```
   """
-  @callback resume(SagaID.t(), t(), state) :: state
+  @callback on_resume(t(), state) :: state
 
   defmacro __using__(_opts) do
+    alias Cizen.{CizenSagaRegistry, Dispatcher, Saga}
+
     quote do
       use GenServer
-      @behaviour Cizen.Saga
+      @behaviour Saga
 
-      @impl Cizen.Saga
-      def resume(id, saga, state) do
-        init(id, saga)
-        state
-      end
-
-      @impl Cizen.Saga
-      def handle_event(id, event, state) do
+      @impl Saga
+      def on_resume(saga, state) do
+        on_start(saga)
         state
       end
 
       @impl GenServer
-      def init({:start, id, saga, lifetime}) do
-        Cizen.Saga.init_with(id, saga, lifetime, %Cizen.Saga.Started{saga_id: id}, :init, [
-          id,
+      def init({Saga, :start, id, saga, lifetime}) do
+        Saga.init_with(id, saga, lifetime, %Saga.Started{saga_id: id}, :on_start, [
           saga
         ])
       end
 
       @impl GenServer
-      def init({:resume, id, saga, state, lifetime}) do
-        Cizen.Saga.init_with(id, saga, lifetime, %Cizen.Saga.Resumed{saga_id: id}, :resume, [
-          id,
+      def init({Saga, :resume, id, saga, state, lifetime}) do
+        Saga.init_with(id, saga, lifetime, %Saga.Resumed{saga_id: id}, :on_resume, [
           saga,
           state
         ])
@@ -103,14 +98,14 @@ defmodule Cizen.Saga do
 
       @impl GenServer
       def handle_info(event, state) do
-        id = Cizen.Saga.self()
+        id = Saga.self()
 
         case event do
-          %Cizen.Saga.Finish{saga_id: ^id} ->
+          %Saga.Finish{saga_id: ^id} ->
             {:stop, {:shutdown, :finish}, state}
 
           event ->
-            state = handle_event(Cizen.Saga.self(), event, state)
+            state = handle_event(event, state)
             {:noreply, state}
         end
       rescue
@@ -123,16 +118,23 @@ defmodule Cizen.Saga do
       end
 
       def terminate({:shutdown, :finish}, _state) do
-        Cizen.Dispatcher.dispatch(%Cizen.Saga.Finished{saga_id: Cizen.Saga.self()})
+        Dispatcher.dispatch(%Saga.Finished{saga_id: Saga.self()})
         :shutdown
       end
 
       def terminate({:shutdown, {reason, trace}}, _state) do
-        id = Cizen.Saga.self()
+        id = Saga.self()
 
-        Cizen.Dispatcher.dispatch(%Cizen.Saga.Crashed{
+        saga =
+          case Saga.get_saga(id) do
+            {:ok, saga} ->
+              saga
+              # nil -> should not happen
+          end
+
+        Dispatcher.dispatch(%Saga.Crashed{
           saga_id: id,
-          saga: Cizen.Saga.get_saga(id) |> elem(1),
+          saga: saga,
           reason: reason,
           stacktrace: trace
         })
@@ -140,18 +142,18 @@ defmodule Cizen.Saga do
         :shutdown
       end
 
-      @impl true
-      def handle_call({Cizen.Saga, :get_saga_id}, _from, state) do
-        [saga_id] = Registry.keys(Cizen.CizenSagaRegistry, Kernel.self())
+      @impl GenServer
+      def handle_call({Saga, :get_saga_id}, _from, state) do
+        [saga_id] = Registry.keys(CizenSagaRegistry, Kernel.self())
         {:reply, saga_id, state}
       end
 
-      def handle_call({Cizen.Saga, request}, _from, state) do
-        result = Cizen.Saga.handle_request(request)
+      def handle_call({Saga, request}, _from, state) do
+        result = Saga.handle_request(request)
         {:reply, result, state}
       end
 
-      defoverridable resume: 3, handle_event: 3
+      defoverridable on_resume: 2
     end
   end
 
@@ -193,7 +195,7 @@ defmodule Cizen.Saga do
     lifetime = Kernel.self()
     id = SagaID.new()
 
-    {:ok, _pid} = GenServer.start_link(module, {:start, id, saga, lifetime})
+    {:ok, _pid} = GenServer.start_link(module, {__MODULE__, :start, id, saga, lifetime})
 
     id
   end
@@ -204,7 +206,7 @@ defmodule Cizen.Saga do
   @spec start_link(t) :: GenServer.on_start()
   def start_link(%module{} = saga) do
     id = SagaID.new()
-    GenServer.start_link(module, {:start, id, saga, nil})
+    GenServer.start_link(module, {__MODULE__, :start, id, saga, nil})
   end
 
   @doc """
@@ -236,7 +238,7 @@ defmodule Cizen.Saga do
   """
   @spec resume(SagaID.t(), t(), state, pid | nil) :: GenServer.on_start()
   def resume(id, %module{} = saga, state, lifetime \\ nil) do
-    GenServer.start(module, {:resume, id, saga, state, lifetime})
+    GenServer.start(module, {__MODULE__, :resume, id, saga, state, lifetime})
   end
 
   @spec start_saga(SagaID.t(), t(), pid | nil) :: GenServer.on_start()
@@ -257,7 +259,7 @@ defmodule Cizen.Saga do
   end
 
   defp do_start_saga(id, %module{} = saga, lifetime) do
-    {:ok, _pid} = GenServer.start(module, {:start, id, saga, lifetime})
+    {:ok, _pid} = GenServer.start(module, {__MODULE__, :start, id, saga, lifetime})
   end
 
   @spec end_saga(SagaID.t()) :: :ok

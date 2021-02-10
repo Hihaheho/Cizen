@@ -6,7 +6,6 @@ defmodule Cizen.Automaton do
   alias Cizen.Dispatcher
   alias Cizen.EffectHandler
   alias Cizen.Saga
-  alias Cizen.SagaID
 
   alias Cizen.Automaton.{PerformEffect, Yield}
 
@@ -27,7 +26,7 @@ defmodule Cizen.Automaton do
   If not defined, default implementation is used,
   and it passes the given saga struct to `c:yield/2` callback.
   """
-  @callback spawn(SagaID.t(), Saga.t()) :: finish | state
+  @callback spawn(Saga.t()) :: finish | state
 
   @doc """
   Invoked when last `c:spawn/2` or `c:yield/2` callback returns a next state.
@@ -38,7 +37,7 @@ defmodule Cizen.Automaton do
   If not defined, default implementation is used,
   and it returns `Automaton.finish()`.
   """
-  @callback yield(SagaID.t(), state) :: finish | state
+  @callback yield(state) :: finish | state
 
   @doc """
   Invoked when the automaton is resumed.
@@ -48,54 +47,56 @@ defmodule Cizen.Automaton do
 
   This callback is predefined. The default implementation is here:
   ```
-  def respawn(id, saga, state) do
-    spawn(id, saga)
+  def respawn(saga, state) do
+    spawn(saga)
     state
   end
   ```
   """
-  @callback respawn(SagaID.t(), Saga.t(), state) :: finish | state
+  @callback respawn(Saga.t(), state) :: finish | state
 
   defmacro __using__(_opts) do
     quote do
       alias Cizen.Automaton
-      import Cizen.Automaton, only: [perform: 2, finish: 0]
+      import Cizen.Automaton, only: [perform: 1, finish: 0]
       require Cizen.Filter
 
       use Saga
       @behaviour Automaton
 
       @impl Automaton
-      def spawn(_id, struct) do
+      def spawn(struct) do
         struct
       end
 
       @impl Automaton
-      def respawn(id, saga, state) do
-        spawn(id, saga)
+      def respawn(saga, state) do
+        __MODULE__.spawn(saga)
         state
       end
 
       @impl Automaton
-      def yield(_id, _state) do
+      def yield(_state) do
         finish()
       end
 
-      defoverridable spawn: 2, respawn: 3, yield: 2
+      defoverridable spawn: 1, respawn: 2, yield: 1
 
       @impl Saga
-      def init(id, struct) do
-        Automaton.init(id, struct)
+      def on_start(struct) do
+        id = Saga.self()
+        Automaton.start(id, struct)
       end
 
       @impl Saga
-      def resume(id, struct, state) do
+      def on_resume(struct, state) do
+        id = Saga.self()
         Automaton.resume(id, struct, state)
       end
 
       @impl Saga
-      def handle_event(id, event, state) do
-        Automaton.handle_event(id, event, state)
+      def handle_event(event, state) do
+        Automaton.handle_event(event, state)
       end
     end
   end
@@ -103,15 +104,14 @@ defmodule Cizen.Automaton do
   @doc """
   Performs an effect.
 
-  `perform/2` blocks the current block until the effect is resolved,
+  `perform/1` blocks the current block until the effect is resolved,
   and returns the result of the effect.
 
-  Note that `perform/2` does not work only on the current process.
+  Note that `perform/1` does not work only on the current process.
   """
-  def perform(id, effect) do
-    event = %PerformEffect{handler: id, effect: effect}
-    Dispatcher.dispatch(event)
-    Saga.send_to(id, event)
+  def perform(effect) do
+    event = %PerformEffect{effect: effect}
+    Saga.send_to(Saga.self(), event)
 
     receive do
       response -> response
@@ -126,17 +126,17 @@ defmodule Cizen.Automaton do
         Dispatcher.dispatch(%Saga.Finish{saga_id: id})
 
       state ->
-        state = module.yield(id, state)
+        state = module.yield(state)
         do_yield(module, id, state)
     end
   end
 
-  def init(id, saga) do
-    init_with(id, saga, %Saga.Started{saga_id: id}, :spawn, [id, saga])
+  def start(id, saga) do
+    init_with(id, saga, %Saga.Started{saga_id: id}, :spawn, [saga])
   end
 
   def resume(id, saga, state) do
-    init_with(id, saga, %Saga.Resumed{saga_id: id}, :respawn, [id, saga, state])
+    init_with(id, saga, %Saga.Resumed{saga_id: id}, :respawn, [saga, state])
   end
 
   defp init_with(id, saga, event, function, arguments) do
@@ -144,6 +144,8 @@ defmodule Cizen.Automaton do
 
     pid =
       spawn_link(fn ->
+        Process.put(:"$cizen.saga_id", id)
+
         try do
           state = apply(module, function, arguments)
           Dispatcher.dispatch(event)
@@ -158,11 +160,11 @@ defmodule Cizen.Automaton do
     {Saga.lazy_init(), {pid, handler_state}}
   end
 
-  def handle_event(_id, %PerformEffect{effect: effect}, {pid, handler}) do
+  def handle_event(%PerformEffect{effect: effect}, {pid, handler}) do
     handle_result(pid, EffectHandler.perform_effect(handler, effect))
   end
 
-  def handle_event(_id, event, state) do
+  def handle_event(event, state) do
     feed_event(state, event)
   end
 

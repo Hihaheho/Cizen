@@ -5,7 +5,7 @@ defmodule Cizen.Effects.Fork do
   Returns the started saga ID.
 
   ## Example
-      saga_id = perform id, %Fork{
+      saga_id = perform %Fork{
         saga: some_saga_struct
       }
   """

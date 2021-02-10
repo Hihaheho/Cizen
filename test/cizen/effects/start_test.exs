@@ -16,12 +16,12 @@ defmodule Cizen.Effects.StartTest do
       pid = self()
 
       id =
-        assert_handle(fn id ->
-          perform id, %Start{
+        assert_handle(fn ->
+          perform(%Start{
             saga: %TestSaga{
-              init: fn id, _ -> send(pid, {:saga_id, id}) end
+              on_start: fn _ -> send(pid, {:saga_id, Saga.self()}) end
             }
-          }
+          })
         end)
 
       assert_receive {:saga_id, ^id}
@@ -33,7 +33,9 @@ defmodule Cizen.Effects.StartTest do
       defstruct []
 
       @impl true
-      def init(id, _) do
+      def on_start(_) do
+        id = Saga.self()
+
         spawn_link(fn ->
           Process.send_after(self(), :ok, 200)
 
@@ -46,17 +48,17 @@ defmodule Cizen.Effects.StartTest do
       end
 
       @impl true
-      def handle_event(_, _, state), do: state
+      def handle_event(_, state), do: state
     end
 
     test "waits a Started event" do
       Dispatcher.listen(Filter.new(fn %Saga.Started{} -> true end))
 
       id =
-        assert_handle(fn id ->
-          perform id, %Start{
+        assert_handle(fn ->
+          perform(%Start{
             saga: %DelayedSaga{}
-          }
+          })
         end)
 
       assert_receive %Saga.Started{saga_id: ^id}, 30

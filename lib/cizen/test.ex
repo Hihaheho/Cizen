@@ -82,14 +82,18 @@ defmodule Cizen.Test do
 
   The default value of the timeout is 100.
   """
-  defmacro assert_perform(timeout \\ 100, id, effect) do
-    quote bind_quoted: [timeout: timeout, id: id, effect: effect] do
-      import Cizen.Automaton, only: [perform: 2]
+  defmacro assert_perform(timeout \\ 100, effect) do
+    quote bind_quoted: [timeout: timeout, effect: effect] do
+      import Cizen.Automaton, only: [perform: 1]
+
       current = self()
+
+      id = Saga.self()
 
       pid =
         spawn_link(fn ->
-          result = perform id, effect
+          Process.put(:"$cizen.saga_id", id)
+          result = perform effect
           send(current, {:finished, result})
         end)
 

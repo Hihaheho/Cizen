@@ -5,7 +5,7 @@ defmodule Cizen.Effects.All do
   Returns the list of resolved values.
 
   ## Example
-        [result1, result2] = perform id, %All{
+        [result1, result2] = perform %All{
           effects: [effect1, effect2]
         }
   """

@@ -13,16 +13,16 @@ defmodule Cizen.CrashLogger do
 
   require Logger
 
-  def spawn(id, %__MODULE__{}) do
-    perform(id, %Subscribe{
+  def spawn(%__MODULE__{}) do
+    perform(%Subscribe{
       event_filter: Filter.new(fn %Saga.Crashed{} -> true end)
     })
 
     :loop
   end
 
-  def yield(id, :loop) do
-    crashed_event = perform(id, %Receive{})
+  def yield(:loop) do
+    crashed_event = perform %Receive{}
 
     %Saga.Crashed{
       saga_id: saga_id,

@@ -136,8 +136,8 @@ defmodule Cizen.Effects.RaceTest do
       defstruct [:pid]
 
       @impl true
-      def spawn(id, struct) do
-        perform(id, %Subscribe{
+      def spawn(struct) do
+        perform(%Subscribe{
           event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
 
@@ -145,10 +145,10 @@ defmodule Cizen.Effects.RaceTest do
       end
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
+      def yield(%__MODULE__{pid: pid}) do
         send(
           pid,
-          perform(id, %Race{
+          perform(%Race{
             effects: [
               effect1: %TestEffect{value: :a},
               effect2: %TestEffect{value: :b},
@@ -162,18 +162,18 @@ defmodule Cizen.Effects.RaceTest do
     end
 
     test "works with perform" do
-      assert_handle(fn id ->
-        perform(id, %Start{
+      assert_handle(fn ->
+        perform(%Start{
           saga: %TestAutomaton{pid: self()}
         })
 
-        perform(id, %Dispatch{
+        perform(%Dispatch{
           body: %TestEvent{
             value: :d
           }
         })
 
-        perform(id, %Dispatch{
+        perform(%Dispatch{
           body: %TestEvent{
             value: :b
           }

@@ -5,7 +5,7 @@ defmodule Cizen.Effects.Start do
   Returns the started saga ID.
 
   ## Example
-      saga_id = perform id, %Start{
+      saga_id = perform %Start{
         saga: some_saga_struct
       }
   """

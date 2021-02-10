@@ -20,12 +20,12 @@ defmodule Cizen.TestHelper do
         Saga.start_saga(
           saga_id,
           %TestSaga{
-            init: fn id, state ->
-              init = Keyword.get(opts, :init, fn _id, state -> state end)
-              state = init.(id, state)
+            on_start: fn state ->
+              on_start = Keyword.get(opts, :on_start, fn state -> state end)
+              state = on_start.(state)
               state
             end,
-            handle_event: Keyword.get(opts, :handle_event, fn _id, _event, state -> state end),
+            handle_event: Keyword.get(opts, :handle_event, fn _event, state -> state end),
             extra: Keyword.get(opts, :extra, nil)
           },
           pid
@@ -68,12 +68,12 @@ defmodule Cizen.TestHelper do
 
     defstruct []
 
-    def spawn(_id, %__MODULE__{}) do
+    def spawn(%__MODULE__{}) do
       :loop
     end
 
-    def yield(id, :loop) do
-      perform(id, %Receive{})
+    def yield(:loop) do
+      perform %Receive{}
 
       :loop
     end

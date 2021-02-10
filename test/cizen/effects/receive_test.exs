@@ -62,17 +62,18 @@ defmodule Cizen.Effects.ReceiveTest do
       defstruct [:pid]
 
       @impl true
-      def yield(id, %__MODULE__{pid: pid}) do
+      def yield(%__MODULE__{pid: pid}) do
         test_event1_filter = Filter.new(fn %TestEvent1{} -> true end)
         test_event2_filter = Filter.new(fn %TestEvent2{} -> true end)
 
+        id = Saga.self()
         Dispatcher.listen(id, test_event1_filter)
         Dispatcher.listen(id, test_event2_filter)
 
         send(pid, :launched)
 
-        send(pid, perform(id, %Receive{event_filter: test_event1_filter}))
-        send(pid, perform(id, %Receive{event_filter: test_event2_filter}))
+        send(pid, perform(%Receive{event_filter: test_event1_filter}))
+        send(pid, perform(%Receive{event_filter: test_event2_filter}))
 
         Automaton.finish()
       end

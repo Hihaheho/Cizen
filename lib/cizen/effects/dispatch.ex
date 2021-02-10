@@ -5,7 +5,7 @@ defmodule Cizen.Effects.Dispatch do
   Returns the dispatched event.
 
   ## Example
-        event = perform id, %Dispatch{
+        event = perform %Dispatch{
           body: some_event_body
         }
   """

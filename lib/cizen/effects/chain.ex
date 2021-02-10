@@ -8,7 +8,7 @@ defmodule Cizen.Effects.Chain do
   and its result is treated as the next effect.
 
   ## Example
-        [result1, result2, result3, result4] = perform id, %Chain{
+        [result1, result2, result3, result4] = perform %Chain{
           effects: [
             effect1,
             effect2,

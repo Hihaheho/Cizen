@@ -2,27 +2,27 @@ defmodule Cizen.TestSaga do
   @moduledoc false
   use Cizen.Saga
 
-  defstruct [:init, :resume, :handle_event, :state, :extra]
+  defstruct [:on_start, :on_resume, :handle_event, :state, :extra]
 
   @impl true
-  def init(id, %__MODULE__{init: init, handle_event: handle_event, state: state} = struct) do
-    init = init || fn _, state -> state end
-    handle_event = handle_event || fn _, _, state -> state end
-    state = init.(id, state)
-    %__MODULE__{struct | init: init, handle_event: handle_event, state: state}
+  def on_start(%__MODULE__{on_start: on_start, handle_event: handle_event, state: state} = struct) do
+    on_start = on_start || fn state -> state end
+    handle_event = handle_event || fn _, state -> state end
+    state = on_start.(state)
+    %__MODULE__{struct | on_start: on_start, handle_event: handle_event, state: state}
   end
 
   @impl true
-  def resume(id, %__MODULE__{resume: resume, handle_event: handle_event} = struct, state) do
-    resume = resume || fn _, _, _ -> state end
-    handle_event = handle_event || fn _, _, state -> state end
-    state = resume.(id, struct, state)
-    %__MODULE__{struct | resume: resume, handle_event: handle_event, state: state}
+  def on_resume(%__MODULE__{on_resume: on_resume, handle_event: handle_event} = struct, state) do
+    on_resume = on_resume || fn _, _ -> state end
+    handle_event = handle_event || fn _, state -> state end
+    state = on_resume.(struct, state)
+    %__MODULE__{struct | on_resume: on_resume, handle_event: handle_event, state: state}
   end
 
   @impl true
-  def handle_event(id, event, %__MODULE__{handle_event: handle_event, state: state} = struct) do
-    state = handle_event.(id, event, state)
+  def handle_event(event, %__MODULE__{handle_event: handle_event, state: state} = struct) do
+    state = handle_event.(event, state)
     %__MODULE__{struct | state: state}
   end
 end

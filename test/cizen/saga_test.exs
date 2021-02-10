@@ -38,7 +38,7 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          handle_event: fn _, event, state ->
+          handle_event: fn event, state ->
             send(pid, event)
             state
           end
@@ -71,10 +71,10 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          init: fn _id, _state ->
+          on_start: fn _state ->
             Dispatcher.listen_event_type(CrashTestEvent1)
           end,
-          handle_event: fn _id, body, state ->
+          handle_event: fn body, state ->
             case body do
               %CrashTestEvent1{} ->
                 raise "Crash!!!"
@@ -98,10 +98,10 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          init: fn _id, _state ->
+          on_start: fn _state ->
             Dispatcher.listen_event_type(CrashTestEvent2)
           end,
-          handle_event: fn _id, body, state ->
+          handle_event: fn body, state ->
             case body do
               %CrashTestEvent2{} ->
                 raise "Crash!!!"
@@ -128,10 +128,10 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          init: fn _id, _state ->
+          on_start: fn _state ->
             Dispatcher.listen_event_type(TestEvent)
           end,
-          handle_event: fn _id, body, state ->
+          handle_event: fn body, state ->
             case body do
               %TestEvent{value: value} ->
                 Dispatcher.dispatch(%TestEventReply{value: value})
@@ -152,7 +152,8 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          init: fn id, state ->
+          on_start: fn state ->
+            id = Saga.self()
             Dispatcher.dispatch(%Saga.Finish{saga_id: id})
             state
           end
@@ -168,13 +169,14 @@ defmodule Cizen.SagaTest do
       defstruct []
 
       @impl true
-      def init(_, _) do
+      def on_start(_) do
         Dispatcher.listen_event_type(TestEvent)
         {Saga.lazy_init(), :ok}
       end
 
       @impl true
-      def handle_event(id, %TestEvent{}, :ok) do
+      def handle_event(%TestEvent{}, :ok) do
+        id = Saga.self()
         Dispatcher.dispatch(%Saga.Started{saga_id: id})
         :ok
       end
@@ -377,12 +379,12 @@ defmodule Cizen.SagaTest do
     use Cizen.Saga
     defstruct [:value]
     @impl true
-    def init(_id, %__MODULE__{}) do
+    def on_start(%__MODULE__{}) do
       :ok
     end
 
     @impl true
-    def handle_event(_id, _event, :ok) do
+    def handle_event(_event, :ok) do
       :ok
     end
   end
@@ -405,7 +407,8 @@ defmodule Cizen.SagaTest do
 
       id =
         launch_test_saga(
-          handle_event: fn id, event, _state ->
+          handle_event: fn event, _state ->
+            id = Saga.self()
             send(pid, {id, event})
           end
         )
@@ -431,7 +434,7 @@ defmodule Cizen.SagaTest do
         Saga.resume(
           saga_id,
           %TestSaga{
-            init: fn _id, _saga ->
+            on_start: fn _saga ->
               send(pid, :called_init)
             end
           },
@@ -449,8 +452,8 @@ defmodule Cizen.SagaTest do
         Saga.resume(
           saga_id,
           %TestSaga{
-            resume: fn id, saga, state ->
-              send(pid, {id, saga, state})
+            on_resume: fn saga, state ->
+              send(pid, {Saga.self(), saga, state})
             end,
             extra: 42
           },
@@ -468,10 +471,10 @@ defmodule Cizen.SagaTest do
         Saga.resume(
           saga_id,
           %TestSaga{
-            resume: fn _id, _saga, _state ->
+            on_resume: fn _saga, _state ->
               :next_state
             end,
-            handle_event: fn _id, _event, state ->
+            handle_event: fn _event, state ->
               send(pid, state)
             end
           },
@@ -502,13 +505,13 @@ defmodule Cizen.SagaTest do
       defstruct [:value]
 
       @impl true
-      def init(_id, saga) do
+      def on_start(saga) do
         Dispatcher.dispatch(%TestEvent{value: {:called_init, saga}})
         :state
       end
 
       @impl true
-      def handle_event(_id, event, state) do
+      def handle_event(event, state) do
         Dispatcher.dispatch(%TestEvent{value: {:called_handle_event, event, state}})
 
         :next_state
@@ -573,13 +576,13 @@ defmodule Cizen.SagaTest do
       defstruct [:pid]
 
       @impl true
-      def init(_id, saga) do
+      def on_start(saga) do
         send(saga.pid, Saga.self())
         saga
       end
 
       @impl true
-      def handle_event(_id, _event, saga) do
+      def handle_event(_event, saga) do
         saga
       end
     end
@@ -597,8 +600,13 @@ defmodule Cizen.SagaTest do
     defstruct []
 
     @impl true
-    def init(_id, _saga) do
+    def on_start(_saga) do
       []
+    end
+
+    @impl true
+    def handle_event(_event, saga) do
+      saga
     end
 
     @impl true
