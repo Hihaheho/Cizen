@@ -14,6 +14,7 @@ defmodule Cizen.Effectful do
   """
 
   alias Cizen.Saga
+  alias Cizen.SagaID
 
   defmacro __using__(_opts) do
     quote do
@@ -45,16 +46,22 @@ defmodule Cizen.Effectful do
   def handle(func) do
     task =
       Task.async(fn ->
+        pid = self()
+
+        Saga.start_saga(
+          SagaID.new(),
+          %InstantAutomaton{
+            block: fn ->
+              send(pid, func.())
+            end
+          },
+          pid
+        )
+
         receive do
           result -> result
         end
       end)
-
-    Saga.fork(%InstantAutomaton{
-      block: fn ->
-        send(task.pid, func.())
-      end
-    })
 
     Task.await(task, :infinity)
   end
