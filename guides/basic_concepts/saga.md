@@ -28,7 +28,7 @@ We call the defined struct "saga struct" and use it for starting sagas and filte
 
 ### Normal way
 
-    Saga.start_saga(SagaID.new(), %SomeSaga{some_field: :some_value})
+    Saga.start(%SomeSaga{some_field: :some_value})
 
 ### With an Effect
 

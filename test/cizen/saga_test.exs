@@ -57,13 +57,6 @@ defmodule Cizen.SagaTest do
       assert_receive %Saga.Finished{saga_id: ^id}
     end
 
-    test "dispatches Ended event on end" do
-      Dispatcher.listen_event_type(Saga.Ended)
-      id = launch_test_saga()
-      Saga.end_saga(id)
-      assert_receive %Saga.Ended{saga_id: ^id}
-    end
-
     defmodule(CrashTestEvent1, do: defstruct([]))
 
     test "terminated on crash" do
@@ -184,8 +177,7 @@ defmodule Cizen.SagaTest do
 
     test "does not dispatch Launched event on lazy launch" do
       Dispatcher.listen_event_type(Saga.Started)
-      id = SagaID.new()
-      Saga.start_saga(id, %LazyLaunchSaga{}, nil)
+      {:ok, id} = Saga.start(%LazyLaunchSaga{}, return: :saga_id)
       refute_receive %Saga.Started{saga_id: ^id}
       Dispatcher.dispatch(%TestEvent{})
       assert_receive %Saga.Started{saga_id: ^id}
@@ -198,166 +190,97 @@ defmodule Cizen.SagaTest do
     end
   end
 
-  describe "Saga.start_saga/3" do
-    test "finishes when the given lifetime process exits" do
-      pid = self()
-
-      process =
-        spawn(fn ->
-          saga_id = SagaID.new()
-          Saga.start_saga(saga_id, %TestSaga{extra: :some_value}, self())
-          send(pid, saga_id)
-
-          receive do
-            :finish -> :ok
-          end
-        end)
-
-      saga_id =
-        receive do
-          saga_id -> saga_id
-        after
-          1000 -> flunk("timeout")
-        end
-
-      assert {:ok, _} = Saga.get_pid(saga_id)
-
-      send(process, :finish)
-
-      assert_condition(100, :error == Saga.get_pid(saga_id))
-    end
-
-    test "finishes when the given lifetime saga exits" do
-      pid = self()
-
-      lifetime = TestHelper.launch_test_saga()
-
-      spawn(fn ->
-        saga_id = SagaID.new()
-        Saga.start_saga(saga_id, %TestSaga{extra: :some_value}, lifetime)
-        send(pid, saga_id)
-
-        receive do
-          :finish -> :ok
-        end
-      end)
-
-      saga_id =
-        receive do
-          saga_id -> saga_id
-        after
-          1000 -> flunk("timeout")
-        end
-
-      assert {:ok, _} = Saga.get_pid(saga_id)
-
-      Saga.end_saga(lifetime)
-
-      assert_condition(100, :error == Saga.get_pid(saga_id))
-    end
-
-    test "finishes immediately when the given lifetime saga already ended" do
-      pid = self()
-
-      # No pid
-      lifetime = SagaID.new()
-
-      spawn(fn ->
-        saga_id = SagaID.new()
-        Saga.start_saga(saga_id, %TestSaga{extra: :some_value}, lifetime)
-        send(pid, saga_id)
-
-        receive do
-          :finish -> :ok
-        end
-      end)
-
-      saga_id =
-        receive do
-          saga_id -> saga_id
-        after
-          1000 -> flunk("timeout")
-        end
-
-      assert_condition(10, :error == Saga.get_pid(saga_id))
-    end
-  end
-
-  describe "Saga.fork/2" do
+  describe "Saga.start/2" do
     test "starts a saga" do
       Dispatcher.listen_event_type(Saga.Started)
-      Saga.fork(%TestSaga{extra: :some_value})
-      assert_receive %Saga.Started{}
-    end
-
-    test "returns saga_id" do
-      Dispatcher.listen_event_type(Saga.Started)
-      saga_id = Saga.fork(%TestSaga{extra: :some_value})
-      received = assert_receive %Saga.Started{}
-      assert saga_id == received.saga_id
-    end
-
-    test "finishes when the given lifetime process exits" do
-      pid = self()
-
-      process =
-        spawn(fn ->
-          saga_id = Saga.fork(%TestSaga{extra: :some_value})
-          send(pid, saga_id)
-
-          receive do
-            :finish -> :ok
-          end
-        end)
-
-      saga_id =
-        receive do
-          saga_id -> saga_id
-        after
-          1000 -> flunk("timeout")
-        end
-
-      assert {:ok, _} = Saga.get_pid(saga_id)
-
-      send(process, :finish)
-
-      assert_condition(100, :error == Saga.get_pid(saga_id))
-    end
-  end
-
-  describe "Saga.start_link/2" do
-    test "starts a saga" do
-      Dispatcher.listen_event_type(Saga.Started)
-      {:ok, pid} = Saga.start_link(%TestSaga{extra: :some_value})
+      {:ok, pid} = Saga.start(%TestSaga{extra: :some_value})
 
       assert_receive %Saga.Started{saga_id: id}
 
       assert {:ok, ^pid} = Saga.get_pid(id)
     end
 
-    test "starts a saga linked to the current process" do
-      test_pid = self()
+    test "raises an error when called with unknown option" do
+      assert_raise ArgumentError, "invalid argument(s): [:unknown_key]", fn ->
+        Saga.start(%TestSaga{extra: :some_value}, unknown_key: :exists)
+      end
+    end
 
-      current =
+    test "resumes a saga" do
+      Dispatcher.listen_event_type(Saga.Resumed)
+      {:ok, pid} = Saga.start(%TestSaga{extra: :some_value}, resume: :resumed_state)
+
+      assert_receive %Saga.Resumed{saga_id: id}
+
+      assert {:ok, ^pid} = Saga.get_pid(id)
+      assert :resumed_state == :sys.get_state(pid).state
+    end
+
+    test "starts a saga with a specific saga ID" do
+      Dispatcher.listen_event_type(Saga.Started)
+      saga_id = SagaID.new()
+      {:ok, pid} = Saga.start(%TestSaga{extra: :some_value}, saga_id: saga_id)
+
+      assert_receive %Saga.Started{saga_id: ^saga_id}
+
+      assert {:ok, ^pid} = Saga.get_pid(saga_id)
+    end
+
+    test "returns a saga ID" do
+      Dispatcher.listen_event_type(Saga.Started)
+      {:ok, saga_id} = Saga.start(%TestSaga{extra: :some_value}, return: :saga_id)
+
+      assert_receive %Saga.Started{saga_id: ^saga_id}
+    end
+
+    test "finishes when the given lifetime process exits" do
+      lifetime =
         spawn(fn ->
-          {:ok, pid} = Saga.start_link(%TestSaga{extra: :some_value})
-          send(test_pid, {:started, pid})
-
           receive do
-            _ -> :ok
+            :finish -> :ok
           end
         end)
 
-      pid =
-        receive do
-          {:started, pid} -> pid
-        after
-          1000 -> flunk("timeout")
-        end
+      {:ok, saga_id} =
+        Saga.start(%TestSaga{extra: :some_value}, lifetime: lifetime, return: :saga_id)
 
-      Process.exit(current, :kill)
+      assert {:ok, _} = Saga.get_pid(saga_id)
 
-      assert_condition(100, false == Process.alive?(pid))
+      send(lifetime, :finish)
+
+      assert_condition(100, :error == Saga.get_pid(saga_id))
+    end
+
+    test "finishes when the given lifetime saga exits" do
+      lifetime = TestHelper.launch_test_saga()
+
+      {:ok, saga_id} =
+        Saga.start(%TestSaga{extra: :some_value}, lifetime: lifetime, return: :saga_id)
+
+      assert {:ok, _} = Saga.get_pid(saga_id)
+
+      Saga.stop(lifetime)
+
+      assert_condition(100, :error == Saga.get_pid(saga_id))
+    end
+
+    test "finishes immediately when the given lifetime saga already ended" do
+      # No pid
+      lifetime = SagaID.new()
+
+      {:ok, saga_id} =
+        Saga.start(%TestSaga{extra: :some_value}, lifetime: lifetime, return: :saga_id)
+
+      assert_condition(10, :error == Saga.get_pid(saga_id))
+    end
+  end
+
+  describe "Saga.start_link/2" do
+    test "starts a saga linked to the current process" do
+      {:ok, pid} = Saga.start_link(%TestSaga{extra: :some_value})
+
+      links = self() |> Process.info() |> Keyword.fetch!(:links)
+      assert pid in links
     end
   end
 
@@ -391,7 +314,7 @@ defmodule Cizen.SagaTest do
 
   describe "Saga.get_saga/1" do
     test "returns a saga struct" do
-      id = Saga.fork(%TestSagaState{value: :some_value})
+      {:ok, id} = Saga.start_link(%TestSagaState{value: :some_value}, return: :saga_id)
 
       assert {:ok, %TestSagaState{value: :some_value}} = Saga.get_saga(id)
     end
@@ -553,21 +476,6 @@ defmodule Cizen.SagaTest do
 
       assert_receive %TestEvent{value: {:called_handle_event, ^event, :resumed_state}}
     end
-
-    test "finishes when the given lifetime process exits" do
-      saga_id = SagaID.new()
-
-      {:ok, pid} = Agent.start(fn -> :ok end)
-
-      Saga.resume(saga_id, %TestSaga{extra: :some_value}, nil, pid)
-
-      assert {:ok, _} = Saga.get_pid(saga_id)
-
-      Agent.stop(pid)
-      refute Process.alive?(pid)
-
-      assert_condition(100, :error == Saga.get_pid(saga_id))
-    end
   end
 
   describe "Saga.self/0" do
@@ -588,8 +496,7 @@ defmodule Cizen.SagaTest do
     end
 
     test "invokes init instead of resume when resume is not defined" do
-      saga_id = SagaID.new()
-      {:ok, _pid} = Saga.start_saga(saga_id, %TestSagaSelf{pid: self()})
+      {:ok, saga_id} = Saga.start_link(%TestSagaSelf{pid: self()}, return: :saga_id)
 
       assert_receive ^saga_id
     end
@@ -610,31 +517,21 @@ defmodule Cizen.SagaTest do
     end
 
     @impl true
-    def handle_call(:pop, _from, [head | tail]) do
-      {:reply, head, tail}
+    def handle_call(:pop, from, [head | tail]) do
+      Saga.reply(from, head)
+      tail
     end
 
     @impl true
     def handle_cast({:push, item}, state) do
-      {:noreply, [item | state]}
+      [item | state]
     end
   end
 
   describe "handle_call/3 and handle_cast/3" do
-    test "works with GenServer APIs" do
-      saga_id = SagaID.new()
-      {:ok, pid} = Saga.start_saga(saga_id, %TestSagaGenServer{})
-
-      GenServer.cast(pid, {:push, :a})
-      assert :sys.get_state(pid) == [:a]
-
-      assert GenServer.call(pid, :pop) == :a
-      assert :sys.get_state(pid) == []
-    end
-
     test "works with Saga.call/2 and Saga.cast/2" do
       saga_id = SagaID.new()
-      {:ok, pid} = Saga.start_saga(saga_id, %TestSagaGenServer{})
+      {:ok, pid} = Saga.start_link(%TestSagaGenServer{}, saga_id: saga_id)
 
       Saga.cast(saga_id, {:push, :a})
       assert :sys.get_state(pid) == [:a]

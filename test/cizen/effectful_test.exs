@@ -54,12 +54,7 @@ defmodule Cizen.EffectfulTest do
     end
 
     test "returns the last expression" do
-      task =
-        Task.async(fn ->
-          TestModule.return(:somevalue)
-        end)
-
-      assert :somevalue == Task.await(task)
+      assert :somevalue == TestModule.return(:somevalue)
     end
 
     test "works with other messages" do

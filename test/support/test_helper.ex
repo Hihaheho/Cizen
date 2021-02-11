@@ -1,6 +1,7 @@
 defmodule Cizen.TestHelper do
   @moduledoc false
   import ExUnit.Assertions, only: [flunk: 0]
+  import ExUnit.Callbacks, only: [on_exit: 1]
 
   alias Cizen.{Dispatcher, Filter}
   alias Cizen.Saga
@@ -17,8 +18,7 @@ defmodule Cizen.TestHelper do
       Task.async(fn ->
         Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
 
-        Saga.start_saga(
-          saga_id,
+        Saga.start(
           %TestSaga{
             on_start: fn state ->
               on_start = Keyword.get(opts, :on_start, fn state -> state end)
@@ -28,7 +28,8 @@ defmodule Cizen.TestHelper do
             handle_event: Keyword.get(opts, :handle_event, fn _event, state -> state end),
             extra: Keyword.get(opts, :extra, nil)
           },
-          pid
+          saga_id: saga_id,
+          lifetime: pid
         )
 
         receive do
@@ -60,26 +61,7 @@ defmodule Cizen.TestHelper do
     end
   end
 
-  defmodule CrashLogSurpressor do
-    @moduledoc false
-    use Cizen.Automaton
-
-    alias Cizen.Effects.Receive
-
-    defstruct []
-
-    def spawn(%__MODULE__{}) do
-      :loop
-    end
-
-    def yield(:loop) do
-      perform %Receive{}
-
-      :loop
-    end
-  end
-
   def surpress_crash_log do
-    Saga.fork(%CrashLogSurpressor{})
+    # TODO
   end
 end

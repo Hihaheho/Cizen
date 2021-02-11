@@ -140,7 +140,6 @@ defmodule Cizen.MixProject do
         Cizen.Saga.Crashed,
         Cizen.Saga.Finish,
         Cizen.Saga.Finished,
-        Cizen.Saga.Ended,
         Cizen.Saga.Started,
         Cizen.SagaID,
         Cizen.SagaMonitor,

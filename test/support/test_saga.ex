@@ -14,7 +14,7 @@ defmodule Cizen.TestSaga do
 
   @impl true
   def on_resume(%__MODULE__{on_resume: on_resume, handle_event: handle_event} = struct, state) do
-    on_resume = on_resume || fn _, _ -> state end
+    on_resume = on_resume || fn _, state -> state end
     handle_event = handle_event || fn _, state -> state end
     state = on_resume.(struct, state)
     %__MODULE__{struct | on_resume: on_resume, handle_event: handle_event, state: state}

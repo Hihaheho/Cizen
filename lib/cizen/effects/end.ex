@@ -21,7 +21,7 @@ defmodule Cizen.Effects.End do
 
   @impl true
   def init(_, %__MODULE__{saga_id: saga_id}) do
-    Saga.end_saga(saga_id)
+    Saga.stop(saga_id)
 
     {:resolve, saga_id}
   end

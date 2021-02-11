@@ -52,7 +52,7 @@ defmodule Cizen.Effects.DispatchTest do
       Dispatcher.listen_event_type(TestEvent)
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
+      Saga.start_link(%TestAutomaton{pid: self()}, saga_id: saga_id)
 
       event_a = assert_receive %TestEvent{value: :a}
       assert_receive ^event_a

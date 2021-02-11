@@ -127,7 +127,7 @@ defmodule Cizen.Effects.MapTest do
       saga_id = SagaID.new()
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomaton{pid: self()})
+      Saga.start_link(%TestAutomaton{pid: self()}, saga_id: saga_id)
 
       assert_receive :launched
 

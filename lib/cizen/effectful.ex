@@ -14,7 +14,6 @@ defmodule Cizen.Effectful do
   """
 
   alias Cizen.Saga
-  alias Cizen.SagaID
 
   defmacro __using__(_opts) do
     quote do
@@ -44,18 +43,19 @@ defmodule Cizen.Effectful do
   end
 
   def handle(func) do
+    lifetime = self()
+
     task =
       Task.async(fn ->
         pid = self()
 
-        Saga.start_saga(
-          SagaID.new(),
+        Saga.start(
           %InstantAutomaton{
             block: fn ->
               send(pid, func.())
             end
           },
-          pid
+          lifetime: lifetime
         )
 
         receive do

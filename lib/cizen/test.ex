@@ -92,7 +92,7 @@ defmodule Cizen.Test do
 
       pid =
         spawn_link(fn ->
-          Process.put(:"$cizen.saga_id", id)
+          Process.put(Saga.saga_id_key(), id)
           result = perform effect
           send(current, {:finished, result})
         end)
@@ -118,7 +118,7 @@ defmodule Cizen.Test do
   def ensure_finished(id) do
     case Saga.get_pid(id) do
       {:ok, _pid} ->
-        Saga.end_saga(id)
+        Saga.stop(id)
 
       _ ->
         :ok

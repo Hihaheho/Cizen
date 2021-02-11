@@ -144,7 +144,7 @@ defmodule Cizen.Automaton do
 
     pid =
       spawn_link(fn ->
-        Process.put(:"$cizen.saga_id", id)
+        Process.put(Saga.saga_id_key(), id)
 
         try do
           state = apply(module, function, arguments)

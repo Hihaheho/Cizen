@@ -29,7 +29,7 @@ defmodule Cizen.Effects.Start do
 
     Task.async(fn ->
       Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
-      Saga.start_saga(saga_id, saga, lifetime)
+      Saga.start(saga, saga_id: saga_id, lifetime: lifetime)
 
       receive do
         %Saga.Started{saga_id: ^saga_id} -> :ok

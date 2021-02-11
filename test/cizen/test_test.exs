@@ -48,7 +48,7 @@ defmodule Cizen.TestTest do
 
   test "assert_handle with timeout" do
     result =
-      assert_handle(15, fn ->
+      assert_handle(100, fn ->
         perform(%Subscribe{
           event_filter: Filter.new(fn %TestEvent{} -> true end)
         })
@@ -63,7 +63,7 @@ defmodule Cizen.TestTest do
 
   test "assert_handle fails with timeout" do
     assert_raise ExUnit.AssertionError, fn ->
-      assert_handle(10, fn ->
+      assert_handle(100, fn ->
         perform %Receive{}
       end)
     end
@@ -92,7 +92,7 @@ defmodule Cizen.TestTest do
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
-        event = assert_perform(10, %Receive{})
+        event = assert_perform(50, %Receive{})
         event.value + 1
       end)
 

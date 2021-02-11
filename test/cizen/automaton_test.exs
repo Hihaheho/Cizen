@@ -52,7 +52,7 @@ defmodule Cizen.AutomatonTest do
       saga_id = SagaID.new()
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomatonNotFinish{}, self())
+      Saga.start_link(%TestAutomatonNotFinish{}, saga_id: saga_id)
 
       refute_receive %Saga.Finish{saga_id: ^saga_id}
     end
@@ -75,7 +75,7 @@ defmodule Cizen.AutomatonTest do
       saga_id = SagaID.new()
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomatonFinishOnSpawn{}, self())
+      Saga.start(%TestAutomatonFinishOnSpawn{}, saga_id: saga_id)
 
       assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
@@ -119,7 +119,7 @@ defmodule Cizen.AutomatonTest do
       saga_id = SagaID.new()
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomaton{pid: self()}, self())
+      Saga.start_link(%TestAutomaton{pid: self()}, saga_id: saga_id)
 
       assert_receive :spawned
 
@@ -159,7 +159,7 @@ defmodule Cizen.AutomatonTest do
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
       Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomaton{pid: self()}, self())
+      Saga.start_link(%TestAutomaton{pid: self()}, saga_id: saga_id)
 
       assert_receive :spawned
 
@@ -209,7 +209,7 @@ defmodule Cizen.AutomatonTest do
     end
 
     test "works with no spawn/2" do
-      Saga.fork(%TestAutomatonNoSpawn{pid: self()})
+      Saga.start_link(%TestAutomatonNoSpawn{pid: self()})
 
       assert_receive :called
     end
@@ -234,7 +234,7 @@ defmodule Cizen.AutomatonTest do
       Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomatonNoYield{pid: self()}, self())
+      Saga.start_link(%TestAutomatonNoYield{pid: self()}, saga_id: saga_id)
 
       assert_receive %Saga.Started{saga_id: ^saga_id}
 
@@ -262,7 +262,7 @@ defmodule Cizen.AutomatonTest do
       saga_id = SagaID.new()
       Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
-      Saga.start_saga(saga_id, %TestAutomatonFinishOnYield{}, self())
+      Saga.start_link(%TestAutomatonFinishOnYield{}, saga_id: saga_id)
 
       assert_receive %Saga.Finish{saga_id: ^saga_id}
     end
@@ -286,7 +286,7 @@ defmodule Cizen.AutomatonTest do
       Dispatcher.listen_event_type(Saga.Crashed)
 
       saga_id = SagaID.new()
-      Saga.start_saga(saga_id, %TestAutomatonCrash{}, self())
+      Saga.start(%TestAutomatonCrash{}, saga_id: saga_id)
 
       assert_receive %Saga.Crashed{
         saga_id: ^saga_id,
@@ -339,7 +339,7 @@ defmodule Cizen.AutomatonTest do
       pid = self()
 
       Dispatcher.listen_event_type(Saga.Started)
-      saga_id = Saga.fork(%TestAutomatonQueue{pid: pid})
+      {:ok, saga_id} = Saga.start_link(%TestAutomatonQueue{pid: pid}, return: :saga_id)
 
       receive do
         %Saga.Started{saga_id: ^saga_id} -> :ok
@@ -396,7 +396,7 @@ defmodule Cizen.AutomatonTest do
         end)
       )
 
-      Saga.start_saga(saga_id, %TestAutomatonABC{}, self())
+      Saga.start_link(%TestAutomatonABC{}, saga_id: saga_id)
 
       assert_receive %Automaton.Yield{
         state: :a
@@ -413,7 +413,7 @@ defmodule Cizen.AutomatonTest do
       )
 
       Dispatcher.listen_event_type(Saga.Started)
-      Saga.start_saga(saga_id, %TestAutomatonABC{}, self())
+      Saga.start_link(%TestAutomatonABC{}, saga_id: saga_id)
 
       receive do
         %Saga.Started{saga_id: ^saga_id} -> :ok
