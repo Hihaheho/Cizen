@@ -91,7 +91,7 @@ defmodule Cizen.Saga do
     quote do
       @behaviour Saga
 
-      # @impl Saga
+      @impl Saga
       def on_resume(saga, state) do
         on_start(saga)
         state
@@ -164,6 +164,7 @@ defmodule Cizen.Saga do
       end
 
       # @impl GenServer
+      @impl Saga
       def handle_call({:"$cizen.saga", :get_saga_id}, _from, state) do
         [saga_id] = Registry.keys(CizenSagaRegistry, Kernel.self())
         {:reply, saga_id, state}
@@ -180,6 +181,9 @@ defmodule Cizen.Saga do
       end
 
       # @impl GenServer
+      @impl Saga
+      def handle_cast({:"$cizen.saga", :dummy_to_prevent_dialyzer_errors}, state), do: state
+
       def handle_cast({:"$cizen.saga", message}, state) do
         state = handle_cast(message, state)
         {:noreply, state}
@@ -261,8 +265,8 @@ defmodule Cizen.Saga do
   def start(%module{} = saga, opts \\ []) do
     {saga_id, return, init} = handle_opts(saga, opts)
 
-    GenServer.start(module, init)
-    |> handle_opts_return(saga_id, return)
+    result = GenServer.start(module, init)
+    handle_opts_return(result, saga_id, return)
   end
 
   @doc """
@@ -274,8 +278,8 @@ defmodule Cizen.Saga do
   def start_link(%module{} = saga, opts \\ []) do
     {saga_id, return, init} = handle_opts(saga, opts)
 
-    GenServer.start_link(module, init)
-    |> handle_opts_return(saga_id, return)
+    result = GenServer.start_link(module, init)
+    handle_opts_return(result, saga_id, return)
   end
 
   defp handle_opts(saga, opts) do
@@ -303,25 +307,23 @@ defmodule Cizen.Saga do
           pid
 
         saga_id ->
-          case get_pid(saga_id) do
-            {:ok, pid} ->
-              pid
-
-            _ ->
-              spawn(fn -> nil end)
-          end
+          get_lifetime_pid_from_saga_id(saga_id)
       end
 
     init =
       case mode do
-        :start ->
-          {:start, saga_id, saga, lifetime}
-
-        {:resume, state} ->
-          {:resume, saga_id, saga, state, lifetime}
+        :start -> {:start, saga_id, saga, lifetime}
+        {:resume, state} -> {:resume, saga_id, saga, state, lifetime}
       end
 
     {saga_id, return, init}
+  end
+
+  defp get_lifetime_pid_from_saga_id(saga_id) do
+    case get_pid(saga_id) do
+      {:ok, pid} -> pid
+      _ -> spawn(fn -> nil end)
+    end
   end
 
   defp handle_opts_return(result, saga_id, return) do
