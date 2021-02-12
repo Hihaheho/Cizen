@@ -281,6 +281,7 @@ defmodule Cizen.SagaTest do
 
       links = self() |> Process.info() |> Keyword.fetch!(:links)
       assert pid in links
+      Process.unlink(pid)
     end
   end
 
@@ -314,7 +315,7 @@ defmodule Cizen.SagaTest do
 
   describe "Saga.get_saga/1" do
     test "returns a saga struct" do
-      {:ok, id} = Saga.start_link(%TestSagaState{value: :some_value}, return: :saga_id)
+      {:ok, id} = Saga.start(%TestSagaState{value: :some_value}, return: :saga_id)
 
       assert {:ok, %TestSagaState{value: :some_value}} = Saga.get_saga(id)
     end
@@ -496,7 +497,7 @@ defmodule Cizen.SagaTest do
     end
 
     test "invokes init instead of resume when resume is not defined" do
-      {:ok, saga_id} = Saga.start_link(%TestSagaSelf{pid: self()}, return: :saga_id)
+      {:ok, saga_id} = Saga.start(%TestSagaSelf{pid: self()}, return: :saga_id)
 
       assert_receive ^saga_id
     end
@@ -531,7 +532,7 @@ defmodule Cizen.SagaTest do
   describe "handle_call/3 and handle_cast/3" do
     test "works with Saga.call/2 and Saga.cast/2" do
       saga_id = SagaID.new()
-      {:ok, pid} = Saga.start_link(%TestSagaGenServer{}, saga_id: saga_id)
+      {:ok, pid} = Saga.start(%TestSagaGenServer{}, saga_id: saga_id)
 
       Saga.cast(saga_id, {:push, :a})
       assert :sys.get_state(pid) == [:a]

@@ -39,7 +39,7 @@ defmodule Cizen.Effects.SubscribeTest do
     test "subscribes messages" do
       saga_id = SagaID.new()
 
-      Saga.start_link(%TestAutomaton{pid: self()}, saga_id: saga_id)
+      Saga.start(%TestAutomaton{pid: self()}, saga_id: saga_id)
 
       assert_receive :ok
       event = %TestEvent{value: :a}
