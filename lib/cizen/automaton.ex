@@ -29,7 +29,7 @@ defmodule Cizen.Automaton do
   @callback spawn(Saga.t()) :: finish | state
 
   @doc """
-  Invoked when last `c:spawn/2` or `c:yield/2` callback returns a next state.
+  Invoked when other callbacks returns a next state.
 
   Returned value will be used as the next state to pass `c:yield/2` callback.
   Returning `Automaton.finish()` will cause the automaton to finish.
@@ -54,6 +54,28 @@ defmodule Cizen.Automaton do
   ```
   """
   @callback respawn(Saga.t(), state) :: finish | state
+
+  @doc """
+  Invoked on `Saga.call/2`.
+
+  You should call `Saga.reply/2` with `from`, otherwise the call will be timeout.
+  You can reply from any process, at any time.
+
+  Returned value will be used as the next state to pass `c:yield/2` callback.
+  Returning `Automaton.finish()` will cause the automaton to finish.
+  """
+  @callback yield_call(message :: term, GenServer.from(), state) :: finish | state
+
+  @doc """
+  Invoked on `Saga.cast/2`.
+
+  Returned value will be used as the next state to pass `c:yield/2` callback.
+  Returning `Automaton.finish()` will cause the automaton to finish.
+  """
+  @callback yield_cast(message :: term, state) :: finish | state
+
+  @automaton_pid_key :"$cizen.automaton.automaton_pid"
+  @queue_pid_key :"$cizen.automaton.queue_pid"
 
   defmacro __using__(_opts) do
     quote do
@@ -80,7 +102,17 @@ defmodule Cizen.Automaton do
         finish()
       end
 
-      defoverridable spawn: 1, respawn: 2, yield: 1
+      @impl Automaton
+      def yield_call(_message, _from, _state) do
+        raise "#{MODULE}.handle_call/2 is not implemented"
+      end
+
+      @impl Automaton
+      def yield_cast(_message, _state) do
+        raise "#{MODULE}.handle_cast/2 is not implemented"
+      end
+
+      defoverridable spawn: 1, respawn: 2, yield: 1, yield_call: 3, yield_cast: 2
 
       @impl Saga
       def on_start(struct) do
@@ -97,6 +129,16 @@ defmodule Cizen.Automaton do
       @impl Saga
       def handle_event(event, state) do
         Automaton.handle_event(event, state)
+      end
+
+      @impl Saga
+      def handle_call(message, from, state) do
+        Automaton.handle_call(message, from, state)
+      end
+
+      @impl Saga
+      def handle_cast(message, state) do
+        Automaton.handle_cast(message, state)
       end
     end
   end
@@ -126,9 +168,24 @@ defmodule Cizen.Automaton do
         Dispatcher.dispatch(%Saga.Finish{saga_id: id})
 
       state ->
+        state = handle_queue(module, state)
         state = module.yield(state)
         do_yield(module, id, state)
     end
+  end
+
+  defp handle_queue(module, state) do
+    @queue_pid_key
+    |> Process.get()
+    |> Agent.get_and_update(&{&1, []})
+    |> Enum.reverse()
+    |> Enum.reduce(state, fn
+      {:call, message, from}, state ->
+        module.yield_call(message, from, state)
+
+      {:cast, message}, state ->
+        module.yield_cast(message, state)
+    end)
   end
 
   def start(id, saga) do
@@ -141,10 +198,13 @@ defmodule Cizen.Automaton do
 
   defp init_with(id, saga, event, function, arguments) do
     module = Saga.module(saga)
+    {:ok, queue} = Agent.start_link(fn -> [] end)
+    Process.put(@queue_pid_key, queue)
 
-    pid =
-      spawn_link(fn ->
+    {:ok, pid} =
+      Task.start_link(fn ->
         Process.put(Saga.saga_id_key(), id)
+        Process.put(@queue_pid_key, queue)
 
         try do
           state = apply(module, function, arguments)
@@ -155,29 +215,48 @@ defmodule Cizen.Automaton do
         end
       end)
 
+    Process.put(@automaton_pid_key, pid)
     handler_state = EffectHandler.init(id)
-
-    {Saga.lazy_init(), {pid, handler_state}}
+    {Saga.lazy_init(), handler_state}
   end
 
-  def handle_event(%PerformEffect{effect: effect}, {pid, handler}) do
-    handle_result(pid, EffectHandler.perform_effect(handler, effect))
+  def handle_event(%PerformEffect{effect: effect}, handler) do
+    handle_result(EffectHandler.perform_effect(handler, effect))
   end
 
   def handle_event(event, state) do
     feed_event(state, event)
   end
 
-  defp feed_event({pid, handler}, event) do
-    handle_result(pid, EffectHandler.feed_event(handler, event))
+  def handle_call(message, from, handler) do
+    pid = Process.get(@queue_pid_key)
+
+    Agent.update(pid, fn queue ->
+      [{:call, message, from} | queue]
+    end)
+
+    handler
   end
 
-  defp handle_result(pid, {:resolve, value, state}) do
+  def handle_cast(message, handler) do
+    pid = Process.get(@queue_pid_key)
+
+    Agent.update(pid, fn queue ->
+      [{:cast, message} | queue]
+    end)
+
+    handler
+  end
+
+  defp feed_event(handler, event) do
+    handle_result(EffectHandler.feed_event(handler, event))
+  end
+
+  defp handle_result({:resolve, value, state}) do
+    pid = Process.get(@automaton_pid_key)
     send(pid, value)
-    {pid, state}
+    state
   end
 
-  defp handle_result(pid, state) do
-    {pid, state}
-  end
+  defp handle_result(state), do: state
 end

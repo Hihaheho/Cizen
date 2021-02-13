@@ -1,6 +1,6 @@
 defmodule Cizen.EventHandlerTest do
   use ExUnit.Case
-  alias Cizen.EffectHandlerTestHelper.{TestEffect, TestEvent}
+  alias Cizen.EffectHandlerTestHelper.{TestEffect, TestEffectEvent}
 
   alias Cizen.EffectHandler
   alias Cizen.SagaID
@@ -42,7 +42,7 @@ defmodule Cizen.EventHandlerTest do
       result =
         state
         |> do_perform(%TestEffect{value: :a})
-        |> do_feed(%TestEvent{value: :a, count: 1})
+        |> do_feed(%TestEffectEvent{value: :a, count: 1})
 
       assert {:resolve, {:a, 1}, %{effect: nil, event_buffer: []}} = result
     end
@@ -50,7 +50,7 @@ defmodule Cizen.EventHandlerTest do
     test "resolves on event which came before PerformEffect event", %{handler: state} do
       result =
         state
-        |> do_feed(%TestEvent{value: :a, count: 1})
+        |> do_feed(%TestEffectEvent{value: :a, count: 1})
         |> do_perform(%TestEffect{value: :a})
 
       assert {:resolve, {:a, 1}, %{effect: nil, event_buffer: []}} = result
@@ -59,9 +59,9 @@ defmodule Cizen.EventHandlerTest do
     test "feeds events from the buffer", %{handler: state} do
       result =
         state
-        |> do_feed(%TestEvent{value: :a, count: 3})
-        |> do_feed(%TestEvent{value: :a, count: 3})
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
         |> do_perform(%TestEffect{value: :a})
 
       assert {:resolve, {:a, 3}, %{effect: nil, event_buffer: []}} = result
@@ -69,12 +69,12 @@ defmodule Cizen.EventHandlerTest do
 
     test "does not resolve for unmatched events", %{handler: state} do
       effect = %TestEffect{value: :a}
-      event_2 = %TestEvent{value: :b, count: 2}
+      event_2 = %TestEffectEvent{value: :b, count: 2}
 
       state =
         state
         |> do_perform(effect)
-        |> do_feed(%TestEvent{value: :a, count: 2})
+        |> do_feed(%TestEffectEvent{value: :a, count: 2})
         |> do_feed(event_2)
 
       assert state.effect == %TestEffect{value: :a}
@@ -83,30 +83,30 @@ defmodule Cizen.EventHandlerTest do
 
     test "keep only not consumed events in the buffer", %{handler: state} do
       effect = %TestEffect{value: :a}
-      event_1 = %TestEvent{value: :b, count: 1}
-      event_2 = %TestEvent{value: :b, count: 2}
+      event_1 = %TestEffectEvent{value: :b, count: 1}
+      event_2 = %TestEffectEvent{value: :b, count: 2}
 
       {:resolve, {:a, 3}, state} =
         state
         |> do_feed(event_1)
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
         |> do_perform(effect)
         |> do_feed(event_2)
-        |> do_feed(%TestEvent{value: :a, count: 3})
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
 
       assert Enum.map(state.event_buffer, & &1) == [event_1, event_2]
     end
 
     test "keep not consumed events in the buffer after resolve", %{handler: state} do
       effect = %TestEffect{value: :a}
-      event_1 = %TestEvent{value: :b, count: 1}
-      event_2 = %TestEvent{value: :b, count: 2}
+      event_1 = %TestEffectEvent{value: :b, count: 1}
+      event_2 = %TestEffectEvent{value: :b, count: 2}
 
       {:resolve, {:a, 1}, state} =
         state
         |> do_feed(event_1)
-        |> do_feed(%TestEvent{value: :a, count: 1})
+        |> do_feed(%TestEffectEvent{value: :a, count: 1})
         |> do_feed(event_2)
         |> do_perform(effect)
 
@@ -116,33 +116,33 @@ defmodule Cizen.EventHandlerTest do
     test "update the effect state", %{handler: initial_state} do
       state =
         initial_state
-        |> do_feed(%TestEvent{value: :a, count: 2})
+        |> do_feed(%TestEffectEvent{value: :a, count: 2})
         |> do_perform(%TestEffect{reset: true, value: :a})
 
       assert state.effect_state == 1
 
       state =
         initial_state
-        |> do_feed(%TestEvent{value: :a, count: 2})
-        |> do_feed(%TestEvent{value: :b, count: 1})
+        |> do_feed(%TestEffectEvent{value: :a, count: 2})
+        |> do_feed(%TestEffectEvent{value: :b, count: 1})
         |> do_perform(%TestEffect{reset: true, value: :a})
 
       assert state.effect_state == 0
 
       state =
         initial_state
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
         |> do_perform(%TestEffect{reset: true, value: :a})
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
 
       assert state.effect_state == 2
 
       state =
         initial_state
-        |> do_feed(%TestEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
         |> do_perform(%TestEffect{reset: true, value: :a})
-        |> do_feed(%TestEvent{value: :a, count: 3})
-        |> do_feed(%TestEvent{value: :b, count: 1})
+        |> do_feed(%TestEffectEvent{value: :a, count: 3})
+        |> do_feed(%TestEffectEvent{value: :b, count: 1})
 
       assert state.effect_state == 0
     end
@@ -161,12 +161,12 @@ defmodule Cizen.EventHandlerTest do
     test "resolves with using alias", %{handler: state} do
       result =
         state
-        |> do_feed(%TestEvent{value: :b, count: 2})
+        |> do_feed(%TestEffectEvent{value: :b, count: 2})
         |> do_perform(%TestEffect{
           value: :a,
           alias_of: %TestEffect{value: :b}
         })
-        |> do_feed(%TestEvent{value: :b, count: 2})
+        |> do_feed(%TestEffectEvent{value: :b, count: 2})
 
       assert {:resolve, {:b, 2}, %{effect: nil, event_buffer: []}} = result
     end

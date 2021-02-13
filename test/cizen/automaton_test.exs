@@ -1,6 +1,6 @@
 defmodule Cizen.AutomatonTest do
   use Cizen.SagaCase
-  alias Cizen.EffectHandlerTestHelper.{TestEffect, TestEvent}
+  alias Cizen.EffectHandlerTestHelper.{TestEffect, TestEffectEvent}
   alias Cizen.TestHelper
 
   alias Cizen.Automaton
@@ -12,6 +12,7 @@ defmodule Cizen.AutomatonTest do
   require Filter
 
   defmodule(UnknownEvent, do: defstruct([]))
+  defmodule(TestEvent, do: defstruct([:value, :extra]))
 
   describe "perform/1" do
     test "block until message is coming and returns the message" do
@@ -87,7 +88,7 @@ defmodule Cizen.AutomatonTest do
 
       @impl true
       def spawn(%__MODULE__{pid: pid}) do
-        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEffectEvent{} -> true end))
 
         send(pid, :spawned)
         send(pid, perform(%TestEffect{value: :a}))
@@ -96,7 +97,7 @@ defmodule Cizen.AutomatonTest do
 
       @impl true
       def respawn(%__MODULE__{pid: pid}, _) do
-        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
+        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEffectEvent{} -> true end))
 
         send(pid, :respawned)
         send(pid, perform(%TestEffect{value: :a}))
@@ -123,28 +124,28 @@ defmodule Cizen.AutomatonTest do
 
       assert_receive :spawned
 
-      Dispatcher.dispatch(%TestEvent{value: :a, count: 1})
+      Dispatcher.dispatch(%TestEffectEvent{value: :a, count: 1})
 
       assert_receive {:a, 1}
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :c,
         count: 2
       })
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :b,
         count: 1
       })
 
       assert_receive {:b, 1}
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :c,
         count: 3
       })
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :c,
         count: 3
       })
@@ -165,7 +166,7 @@ defmodule Cizen.AutomatonTest do
 
       refute_receive %Saga.Started{saga_id: ^saga_id}
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :a,
         count: 1
       })
@@ -185,7 +186,7 @@ defmodule Cizen.AutomatonTest do
 
       refute_receive %Saga.Resumed{saga_id: ^saga_id}
 
-      Dispatcher.dispatch(%TestEvent{
+      Dispatcher.dispatch(%TestEffectEvent{
         value: :a,
         count: 1
       })
@@ -579,6 +580,67 @@ defmodule Cizen.AutomatonTest do
         )
 
       assert_receive :called
+    end
+  end
+
+  defmodule TestAutomatonGenServer do
+    use Automaton
+    defstruct []
+
+    @impl true
+    def spawn(_saga) do
+      perform(%Subscribe{
+        event_filter: Filter.new(fn %TestEvent{} -> true end)
+      })
+
+      []
+    end
+
+    @impl true
+    def yield(state) do
+      perform(%Receive{
+        event_filter: Filter.new(fn %TestEvent{} -> true end)
+      })
+
+      state
+    end
+
+    @impl true
+    def yield_call(:pop, from, [head | tail]) do
+      Saga.reply(from, head)
+      tail
+    end
+
+    @impl true
+    def yield_cast({:push, item}, state) do
+      [item | state]
+    end
+  end
+
+  describe "yield_call/3 and yield_cast/2" do
+    test "called after yield" do
+      {:ok, saga_id} = Saga.start(%TestAutomatonGenServer{}, return: :saga_id)
+
+      :timer.sleep(100)
+
+      task =
+        Task.async(fn ->
+          Saga.cast(saga_id, {:push, :a})
+          Saga.cast(saga_id, {:push, :b})
+          first = Saga.call(saga_id, :pop)
+          second = Saga.call(saga_id, :pop)
+          {first, second}
+        end)
+
+      assert Task.yield(task, 100) == nil
+
+      Dispatcher.dispatch(%TestEvent{})
+
+      assert Task.yield(task, 100) == nil
+
+      Dispatcher.dispatch(%TestEvent{})
+
+      assert Task.yield(task, 100) == {:ok, {:b, :a}}
     end
   end
 end

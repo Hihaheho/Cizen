@@ -1,7 +1,7 @@
 defmodule Cizen.EffectHandlerTestHelper do
   @moduledoc false
 
-  defmodule TestEvent do
+  defmodule TestEffectEvent do
     @moduledoc false
     defstruct [:value, :count, :extra]
   end
@@ -30,7 +30,7 @@ defmodule Cizen.EffectHandlerTestHelper do
     end
 
     @impl true
-    def handle_event(_handler, %TestEvent{} = body, effect, count) do
+    def handle_event(_handler, %TestEffectEvent{} = body, effect, count) do
       if body.value == effect.value do
         count = count + 1
 

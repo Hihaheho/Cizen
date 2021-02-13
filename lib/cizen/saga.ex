@@ -69,7 +69,7 @@ defmodule Cizen.Saga do
   @callback on_resume(t(), state) :: state
 
   @doc """
-  The handler for Saga.call(message).
+  The handler for `Saga.call/2`.
 
   You should call `Saga.reply/2` with `from`, otherwise the call will be timeout.
   You can reply from any process, at any time.
@@ -77,7 +77,7 @@ defmodule Cizen.Saga do
   @callback handle_call(message :: term, from :: GenServer.from(), state) :: state
 
   @doc """
-  The handler for Saga.cast(message).
+  The handler for `Saga.cast/2`.
   """
   @callback handle_cast(message :: term, state) :: state
 
