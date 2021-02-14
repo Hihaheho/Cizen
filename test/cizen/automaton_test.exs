@@ -589,31 +589,20 @@ defmodule Cizen.AutomatonTest do
 
     @impl true
     def spawn(_saga) do
-      perform(%Subscribe{
-        event_filter: Filter.new(fn %TestEvent{} -> true end)
-      })
-
       []
     end
 
     @impl true
     def yield(state) do
-      perform(%Receive{
-        event_filter: Filter.new(fn %TestEvent{} -> true end)
-      })
+      case perform(%Receive{}) do
+        %Automaton.Cast{request: {:push, item}} ->
+          [item | state]
 
-      state
-    end
-
-    @impl true
-    def yield_call(:pop, from, [head | tail]) do
-      Saga.reply(from, head)
-      tail
-    end
-
-    @impl true
-    def yield_cast({:push, item}, state) do
-      [item | state]
+        %Automaton.Call{request: :pop, from: from} ->
+          [head | tail] = state
+          Saga.reply(from, head)
+          tail
+      end
     end
   end
 
@@ -623,24 +612,10 @@ defmodule Cizen.AutomatonTest do
 
       :timer.sleep(100)
 
-      task =
-        Task.async(fn ->
-          Saga.cast(saga_id, {:push, :a})
-          Saga.cast(saga_id, {:push, :b})
-          first = Saga.call(saga_id, :pop)
-          second = Saga.call(saga_id, :pop)
-          {first, second}
-        end)
-
-      assert Task.yield(task, 100) == nil
-
-      Dispatcher.dispatch(%TestEvent{})
-
-      assert Task.yield(task, 100) == nil
-
-      Dispatcher.dispatch(%TestEvent{})
-
-      assert Task.yield(task, 100) == {:ok, {:b, :a}}
+      Saga.cast(saga_id, {:push, :a})
+      Saga.cast(saga_id, {:push, :b})
+      assert :b == Saga.call(saga_id, :pop)
+      assert :a == Saga.call(saga_id, :pop)
     end
   end
 end

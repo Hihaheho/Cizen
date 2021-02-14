@@ -1,6 +1,18 @@
 defmodule Cizen.Automaton do
   @moduledoc """
   A saga framework to create an automaton.
+
+  Handle requests from `Saga.call/2` and `Saga.cast/2`:
+
+      case perform(%Receive{}) do
+        %Automaton.Cast{request: {:push, item}} ->
+          [item | state]
+
+        %Automaton.Call{request: :pop, from: from} ->
+          [head | tail] = state
+          Saga.reply(from, head)
+          tail
+      end
   """
 
   alias Cizen.Dispatcher
@@ -8,6 +20,24 @@ defmodule Cizen.Automaton do
   alias Cizen.Saga
 
   alias Cizen.Automaton.{PerformEffect, Yield}
+
+  defmodule Call do
+    @moduledoc """
+    An event for `Saga.call/2`
+    """
+    @keys [:request, :from]
+    @enforce_keys @keys
+    defstruct @keys
+  end
+
+  defmodule Cast do
+    @moduledoc """
+    An event for `Saga.cast/2`
+    """
+    @keys [:request]
+    @enforce_keys @keys
+    defstruct @keys
+  end
 
   @finish {__MODULE__, :finish}
 
@@ -55,27 +85,7 @@ defmodule Cizen.Automaton do
   """
   @callback respawn(Saga.t(), state) :: finish | state
 
-  @doc """
-  Invoked on `Saga.call/2`.
-
-  You should call `Saga.reply/2` with `from`, otherwise the call will be timeout.
-  You can reply from any process, at any time.
-
-  Returned value will be used as the next state to pass `c:yield/2` callback.
-  Returning `Automaton.finish()` will cause the automaton to finish.
-  """
-  @callback yield_call(message :: term, GenServer.from(), state) :: finish | state
-
-  @doc """
-  Invoked on `Saga.cast/2`.
-
-  Returned value will be used as the next state to pass `c:yield/2` callback.
-  Returning `Automaton.finish()` will cause the automaton to finish.
-  """
-  @callback yield_cast(message :: term, state) :: finish | state
-
   @automaton_pid_key :"$cizen.automaton.automaton_pid"
-  @queue_pid_key :"$cizen.automaton.queue_pid"
 
   defmacro __using__(_opts) do
     quote do
@@ -102,17 +112,7 @@ defmodule Cizen.Automaton do
         finish()
       end
 
-      @impl Automaton
-      def yield_call(_message, _from, _state) do
-        raise "#{MODULE}.handle_call/2 is not implemented"
-      end
-
-      @impl Automaton
-      def yield_cast(_message, _state) do
-        raise "#{MODULE}.handle_cast/2 is not implemented"
-      end
-
-      defoverridable spawn: 1, respawn: 2, yield: 1, yield_call: 3, yield_cast: 2
+      defoverridable spawn: 1, respawn: 2, yield: 1
 
       @impl Saga
       def on_start(struct) do
@@ -168,24 +168,9 @@ defmodule Cizen.Automaton do
         Dispatcher.dispatch(%Saga.Finish{saga_id: id})
 
       state ->
-        state = handle_queue(module, state)
         state = module.yield(state)
         do_yield(module, id, state)
     end
-  end
-
-  defp handle_queue(module, state) do
-    @queue_pid_key
-    |> Process.get()
-    |> Agent.get_and_update(&{&1, []})
-    |> Enum.reverse()
-    |> Enum.reduce(state, fn
-      {:call, message, from}, state ->
-        module.yield_call(message, from, state)
-
-      {:cast, message}, state ->
-        module.yield_cast(message, state)
-    end)
   end
 
   def start(id, saga) do
@@ -198,13 +183,10 @@ defmodule Cizen.Automaton do
 
   defp init_with(id, saga, event, function, arguments) do
     module = Saga.module(saga)
-    {:ok, queue} = Agent.start_link(fn -> [] end)
-    Process.put(@queue_pid_key, queue)
 
     {:ok, pid} =
       Task.start_link(fn ->
         Process.put(Saga.saga_id_key(), id)
-        Process.put(@queue_pid_key, queue)
 
         try do
           state = apply(module, function, arguments)
@@ -228,24 +210,12 @@ defmodule Cizen.Automaton do
     feed_event(state, event)
   end
 
-  def handle_call(message, from, handler) do
-    pid = Process.get(@queue_pid_key)
-
-    Agent.update(pid, fn queue ->
-      [{:call, message, from} | queue]
-    end)
-
-    handler
+  def handle_call(request, from, handler) do
+    feed_event(handler, %Call{request: request, from: from})
   end
 
-  def handle_cast(message, handler) do
-    pid = Process.get(@queue_pid_key)
-
-    Agent.update(pid, fn queue ->
-      [{:cast, message} | queue]
-    end)
-
-    handler
+  def handle_cast(request, handler) do
+    feed_event(handler, %Cast{request: request})
   end
 
   defp feed_event(handler, event) do
