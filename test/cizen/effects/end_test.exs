@@ -18,7 +18,7 @@ defmodule Cizen.Effects.EndTest do
 
         assert saga_id == perform(%End{saga_id: saga_id})
 
-        assert_condition(100, :error = Saga.get_pid(saga_id))
+        assert_condition(1000, :error = Saga.get_pid(saga_id))
       end)
     end
   end

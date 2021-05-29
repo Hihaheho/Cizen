@@ -12,7 +12,7 @@ defmodule Cizen.MixProject do
       deps: deps(),
       name: "Cizen",
       docs: docs(),
-      source_url: "https://gitlab.com/cizen/cizen",
+      source_url: "https://github.com/Hihaheho-Studios/Cizen",
       description: """
       Build highly concurrent, monitorable, and extensible applications with a collection of automata.
       """,

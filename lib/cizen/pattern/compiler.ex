@@ -33,12 +33,7 @@ defmodule Cizen.Pattern.Compiler do
 
   # input `fn case1; case2 end`
   def to_filter({:fn, _, _fncases} = filter), do: filter
-  # input `%A{a: list} when is_list(list)`
-  def to_filter({:when, _, _} = pattern), do: quote(do: fn unquote(pattern) -> true end)
-  # input `%A{a: 3}`
-  def to_filter({:%, _, _} = pattern), do: quote(do: fn unquote(pattern) -> true end)
-  # input `%{a: 3}`
-  def to_filter({:%{}, _, _} = pattern), do: quote(do: fn unquote(pattern) -> true end)
+  def to_filter(pattern), do: quote(do: fn unquote(pattern) -> true end)
 
   # Reads fncase
   @spec read_fncase(Code.ast(), Macro.Env.t()) :: {Code.t(), [Code.t()]}

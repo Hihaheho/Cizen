@@ -30,7 +30,7 @@ defmodule Cizen.Dispatcher do
   """
   @spec listen_all :: :ok
   def listen_all do
-    listen(Pattern.new(fn _ -> true end))
+    listen(Pattern.new(_))
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Cizen.Dispatcher do
   """
   @spec listen_event_type(module) :: :ok
   def listen_event_type(event_type) do
-    listen(Pattern.new(fn event -> event.__struct__ == event_type end))
+    listen(Pattern.new(fn %{} = event -> event.__struct__ == event_type end))
   end
 
   @doc """

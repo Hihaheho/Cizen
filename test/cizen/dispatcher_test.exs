@@ -129,4 +129,11 @@ defmodule Cizen.DispatcherTest do
     assert :ok ==
              Dispatcher.listen(saga_id, Pattern.new(fn %TestEventA{} -> true end))
   end
+
+  test "the meaning of life" do
+    Dispatcher.listen(Pattern.new(42))
+    Dispatcher.dispatch(42)
+
+    assert_receive 42
+  end
 end
