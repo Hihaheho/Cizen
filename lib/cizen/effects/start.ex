@@ -16,19 +16,19 @@ defmodule Cizen.Effects.Start do
 
   alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
   alias Cizen.SagaID
 
   use Effect
-  require Filter
+  require Pattern
 
   @impl true
   def init(_, %__MODULE__{saga: saga, lifetime: lifetime}) do
     saga_id = SagaID.new()
 
     Task.async(fn ->
-      Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Pattern.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
       Saga.start(saga, saga_id: saga_id, lifetime: lifetime)
 
       receive do

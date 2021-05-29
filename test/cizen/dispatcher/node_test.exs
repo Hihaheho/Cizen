@@ -2,9 +2,9 @@ defmodule Cizen.Dispatcher.NodeTest do
   use ExUnit.Case
 
   alias Cizen.Dispatcher.Node
-  alias Cizen.Filter
+  alias Cizen.Pattern
 
-  require Filter
+  require Pattern
 
   defmodule(TestEvent, do: defstruct([]))
 
@@ -128,7 +128,7 @@ defmodule Cizen.Dispatcher.NodeTest do
       subscriber = self()
       {:ok, node} = Node.start_link()
 
-      %{code: code} = Filter.new(fn a -> a == "a" or a == "b" end)
+      %{code: code} = Pattern.new(fn a -> a == "a" or a == "b" end)
       Node.put(node, code, subscriber)
       refute_receive _
     end
@@ -137,7 +137,7 @@ defmodule Cizen.Dispatcher.NodeTest do
       subscriber = self()
       {:ok, node} = Node.start_link()
 
-      %{code: code} = Filter.new(fn %TestEvent{} -> true end)
+      %{code: code} = Pattern.new(fn %TestEvent{} -> true end)
       Node.put(node, code, subscriber)
 
       assert %{
@@ -184,7 +184,7 @@ defmodule Cizen.Dispatcher.NodeTest do
       end)
 
     {:ok, node} = Node.start_link()
-    %{code: code} = Filter.new(fn a -> a == "a" end)
+    %{code: code} = Pattern.new(fn a -> a == "a" end)
 
     Node.put(node, code, subscriber)
 
@@ -216,8 +216,8 @@ defmodule Cizen.Dispatcher.NodeTest do
       end)
 
     {:ok, node} = Node.start_link()
-    %{code: code1} = Filter.new(fn a -> a == "a" end)
-    %{code: code2} = Filter.new(fn a -> a == "b" end)
+    %{code: code1} = Pattern.new(fn a -> a == "a" end)
+    %{code: code2} = Pattern.new(fn a -> a == "b" end)
     Node.put(node, code1, subscriber1)
     Node.put(node, code2, subscriber2)
 
@@ -249,7 +249,7 @@ defmodule Cizen.Dispatcher.NodeTest do
     {:ok, parent_node} = Node.start_link()
     {:ok, node} = Node.start_link(parent_node)
     Process.monitor(node)
-    %{code: code} = Filter.new(fn a -> a == "a" end)
+    %{code: code} = Pattern.new(fn a -> a == "a" end)
     Node.put(node, code, subscriber)
 
     send(subscriber, :stop)
@@ -266,7 +266,7 @@ defmodule Cizen.Dispatcher.NodeTest do
       end)
 
     {:ok, parent_node} = Node.start_link()
-    %{code: code} = Filter.new(fn a -> a == "a" end)
+    %{code: code} = Pattern.new(fn a -> a == "a" end)
     Node.put(parent_node, code, subscriber)
     node = :sys.get_state(parent_node).operations[{:access, []}]["a"]
     Process.monitor(node)
@@ -292,7 +292,7 @@ defmodule Cizen.Dispatcher.NodeTest do
 
     {:ok, node} = Node.start_link()
     Process.monitor(node)
-    %{code: code} = Filter.new(fn a -> a == "a" end)
+    %{code: code} = Pattern.new(fn a -> a == "a" end)
     Node.put(node, code, subscriber)
 
     send(subscriber, :stop)
@@ -309,7 +309,7 @@ defmodule Cizen.Dispatcher.NodeTest do
 
     {:ok, node} = Node.start_link()
 
-    %{code: code} = Filter.new(fn a -> a == "a" end)
+    %{code: code} = Pattern.new(fn a -> a == "a" end)
 
     Node.put(node, code, subscriber)
 
@@ -339,7 +339,7 @@ defmodule Cizen.Dispatcher.NodeTest do
 
       {:ok, node} = Node.start_link()
 
-      %{code: code} = Filter.new(fn a -> a == "a" end)
+      %{code: code} = Pattern.new(fn a -> a == "a" end)
       Node.put(node, code, subscriber)
 
       for _ <- 0..100 do

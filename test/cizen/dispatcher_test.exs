@@ -3,9 +3,9 @@ defmodule Cizen.DispatcherTest do
   alias Cizen.TestHelper
 
   alias Cizen.Dispatcher
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.SagaID
-  require Cizen.Filter
+  require Cizen.Pattern
 
   defmodule(TestEvent, do: defstruct([:value]))
 
@@ -80,7 +80,7 @@ defmodule Cizen.DispatcherTest do
 
     task1 =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %TestEventA{} -> true end))
+        Dispatcher.listen(Pattern.new(fn %TestEventA{} -> true end))
         send(pid, :task1)
         assert_receive %TestEventA{}
         refute_receive %TestEventB{}
@@ -88,8 +88,8 @@ defmodule Cizen.DispatcherTest do
 
     task2 =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %TestEventA{} -> true end))
-        Dispatcher.listen(Filter.new(fn %TestEventB{} -> true end))
+        Dispatcher.listen(Pattern.new(fn %TestEventA{} -> true end))
+        Dispatcher.listen(Pattern.new(fn %TestEventB{} -> true end))
         send(pid, :task2)
         assert_receive %TestEventA{}
         assert_receive %TestEventB{}
@@ -116,7 +116,7 @@ defmodule Cizen.DispatcherTest do
         end
       )
 
-    Dispatcher.listen(saga_id, Filter.new(fn %TestEventA{} -> true end))
+    Dispatcher.listen(saga_id, Pattern.new(fn %TestEventA{} -> true end))
 
     Dispatcher.dispatch(%TestEventA{})
 
@@ -127,6 +127,6 @@ defmodule Cizen.DispatcherTest do
     saga_id = SagaID.new()
 
     assert :ok ==
-             Dispatcher.listen(saga_id, Filter.new(fn %TestEventA{} -> true end))
+             Dispatcher.listen(saga_id, Pattern.new(fn %TestEventA{} -> true end))
   end
 end

@@ -2,14 +2,14 @@ defmodule Cizen.Effects.ResumeTest do
   use Cizen.SagaCase
 
   alias Cizen.Dispatcher
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
   alias Cizen.SagaID
   alias Cizen.TestSaga
 
   alias Cizen.Effects.Resume
 
-  require Filter
+  require Pattern
 
   describe "Resume" do
     test "resume a saga" do
@@ -55,7 +55,7 @@ defmodule Cizen.Effects.ResumeTest do
     end
 
     test "waits a Resumed event" do
-      Dispatcher.listen(Filter.new(fn %Saga.Resumed{} -> true end))
+      Dispatcher.listen(Pattern.new(fn %Saga.Resumed{} -> true end))
 
       id =
         assert_handle(fn ->

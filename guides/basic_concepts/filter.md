@@ -1,6 +1,6 @@
-# Filter
+# Pattern
 
-`Cizen.Filter` is a module to filter events for subscriptions.
+`Cizen.Pattern` is a module to filter events for subscriptions.
 
-See `Cizen.Filter`.
+See `Cizen.Pattern`.
 

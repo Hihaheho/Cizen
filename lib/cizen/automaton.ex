@@ -91,7 +91,7 @@ defmodule Cizen.Automaton do
     quote do
       alias Cizen.Automaton
       import Cizen.Automaton, only: [perform: 1, finish: 0]
-      require Cizen.Filter
+      require Cizen.Pattern
 
       use Saga
       @behaviour Automaton

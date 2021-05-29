@@ -5,7 +5,7 @@ defmodule Cizen.Effects.ReceiveTest do
   alias Cizen.Dispatcher
   alias Cizen.Effect
   alias Cizen.Effects.Receive
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
   alias Cizen.SagaID
 
@@ -16,7 +16,7 @@ defmodule Cizen.Effects.ReceiveTest do
     id = SagaID.new()
 
     effect = %Receive{
-      event_filter: Filter.new(fn %TestEvent1{} -> true end)
+      event_filter: Pattern.new(fn %TestEvent1{} -> true end)
     }
 
     %{handler: id, effect: effect}
@@ -53,7 +53,7 @@ defmodule Cizen.Effects.ReceiveTest do
     end
 
     test "uses the default event filter" do
-      assert %Receive{} == %Receive{event_filter: %Filter{}}
+      assert %Receive{} == %Receive{event_filter: %Pattern{}}
     end
 
     defmodule TestAutomaton do
@@ -63,8 +63,8 @@ defmodule Cizen.Effects.ReceiveTest do
 
       @impl true
       def yield(%__MODULE__{pid: pid}) do
-        test_event1_filter = Filter.new(fn %TestEvent1{} -> true end)
-        test_event2_filter = Filter.new(fn %TestEvent2{} -> true end)
+        test_event1_filter = Pattern.new(fn %TestEvent1{} -> true end)
+        test_event2_filter = Pattern.new(fn %TestEvent2{} -> true end)
 
         id = Saga.self()
         Dispatcher.listen(id, test_event1_filter)
@@ -81,7 +81,7 @@ defmodule Cizen.Effects.ReceiveTest do
 
     test "works with Automaton" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Pattern.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start(%TestAutomaton{pid: self()}, saga_id: saga_id)
 

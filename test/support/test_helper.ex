@@ -3,12 +3,12 @@ defmodule Cizen.TestHelper do
   import ExUnit.Assertions, only: [flunk: 0]
   import ExUnit.Callbacks, only: [on_exit: 1]
 
-  alias Cizen.{Dispatcher, Filter}
+  alias Cizen.{Dispatcher, Pattern}
   alias Cizen.Saga
   alias Cizen.SagaID
   alias Cizen.TestSaga
 
-  require Filter
+  require Pattern
 
   def launch_test_saga(opts \\ []) do
     saga_id = SagaID.new()
@@ -16,7 +16,7 @@ defmodule Cizen.TestHelper do
 
     task =
       Task.async(fn ->
-        Dispatcher.listen(Filter.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
+        Dispatcher.listen(Pattern.new(fn %Saga.Started{saga_id: ^saga_id} -> true end))
 
         Saga.start(
           %TestSaga{

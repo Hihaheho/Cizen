@@ -8,18 +8,18 @@ defmodule Cizen.Effects.Receive do
 
   ## Example
       perform %Subscribe{
-        event_filter: Filter.new(fn %SomeEvent{} -> true end)
+        event_filter: Pattern.new(fn %SomeEvent{} -> true end)
       }
 
       perform %Receive{
-        event_filter: Filter.new(fn %SomeEvent{} -> true end)
+        event_filter: Pattern.new(fn %SomeEvent{} -> true end)
       }
   """
 
   alias Cizen.Effect
-  alias Cizen.Filter
+  alias Cizen.Pattern
 
-  defstruct event_filter: %Filter{}
+  defstruct event_filter: %Pattern{}
 
   use Effect
 
@@ -30,7 +30,7 @@ defmodule Cizen.Effects.Receive do
 
   @impl true
   def handle_event(_handler, event, effect, state) do
-    if Filter.match?(effect.event_filter, event) do
+    if Pattern.match?(effect.event_filter, event) do
       {:resolve, event}
     else
       state

@@ -4,10 +4,10 @@ defmodule Cizen.Effects.EndTest do
   import Cizen.TestHelper, only: [assert_condition: 2]
 
   alias Cizen.Effects.End
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
 
-  require Filter
+  require Pattern
 
   defmodule(TestEvent, do: defstruct([:value]))
 

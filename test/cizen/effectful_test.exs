@@ -2,7 +2,7 @@ defmodule Cizen.EffectfulTest do
   use Cizen.SagaCase
 
   alias Cizen.Dispatcher
-  alias Cizen.Filter
+  alias Cizen.Pattern
 
   alias Cizen.Effects.{Dispatch}
 
@@ -59,7 +59,7 @@ defmodule Cizen.EffectfulTest do
 
     test "works with other messages" do
       pid = self()
-      filter = Filter.new(fn %TestEvent{value: a} -> a == 1 end)
+      filter = Pattern.new(fn %TestEvent{value: a} -> a == 1 end)
 
       task =
         Task.async(fn ->

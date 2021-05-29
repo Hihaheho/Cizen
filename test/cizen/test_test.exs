@@ -6,7 +6,7 @@ defmodule Cizen.TestTest do
   import ExUnit.Callbacks, only: [setup_all: 1, on_exit: 1]
 
   use Cizen.Effects
-  alias Cizen.{Dispatcher, Filter}
+  alias Cizen.{Dispatcher, Pattern}
   alias Cizen.SagaRegistry
 
   defmodule TestEvent do
@@ -35,7 +35,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Filter.new(fn %TestEvent{} -> true end)
+          event_filter: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -50,7 +50,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(100, fn ->
         perform(%Subscribe{
-          event_filter: Filter.new(fn %TestEvent{} -> true end)
+          event_filter: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -73,7 +73,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Filter.new(fn %TestEvent{} -> true end)
+          event_filter: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -88,7 +88,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Filter.new(fn %TestEvent{} -> true end)
+          event_filter: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})

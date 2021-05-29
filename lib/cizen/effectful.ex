@@ -19,7 +19,7 @@ defmodule Cizen.Effectful do
     quote do
       import Cizen.Effectful, only: [handle: 1]
       import Cizen.Automaton, only: [perform: 1]
-      require Cizen.Filter
+      require Cizen.Pattern
     end
   end
 

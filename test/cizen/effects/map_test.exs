@@ -5,11 +5,11 @@ defmodule Cizen.Effects.MapTest do
   alias Cizen.Automaton
   alias Cizen.Dispatcher
   alias Cizen.Effect
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
   alias Cizen.SagaID
 
-  require Filter
+  require Pattern
 
   use Cizen.Effects, only: [Map]
 
@@ -99,7 +99,7 @@ defmodule Cizen.Effects.MapTest do
 
       @impl true
       def yield(%__MODULE__{pid: pid}) do
-        Dispatcher.listen(Saga.self(), Filter.new(fn %TestEvent{} -> true end))
+        Dispatcher.listen(Saga.self(), Pattern.new(fn %TestEvent{} -> true end))
 
         send(pid, :launched)
 
@@ -125,7 +125,7 @@ defmodule Cizen.Effects.MapTest do
 
     test "transforms the result" do
       saga_id = SagaID.new()
-      Dispatcher.listen(Filter.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
+      Dispatcher.listen(Pattern.new(fn %Saga.Finish{saga_id: ^saga_id} -> true end))
 
       Saga.start(%TestAutomaton{pid: self()}, saga_id: saga_id)
 

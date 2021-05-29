@@ -4,9 +4,9 @@ defmodule Cizen.CrashLoggerTest do
   alias Cizen.TestHelper
 
   alias Cizen.Dispatcher
-  alias Cizen.Filter
+  alias Cizen.Pattern
 
-  require Filter
+  require Pattern
 
   defmodule(CrashTestEvent, do: defstruct([]))
 

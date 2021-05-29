@@ -71,15 +71,15 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       defstruct [:stack]
 
       use Cizen.Effects # to use All, Subscribe, Receive, and Dispatch
-      alias Cizen.Filter
+      alias Cizen.Pattern
 
       @impl true
       def spawn(%__MODULE__{stack: stack}) do
         perform %All{effects: [
-          %Subscribe{event_filter: Filter.new(
+          %Subscribe{event_filter: Pattern.new(
             fn %Push{} -> true end
           )},
-          %Subscribe{event_filter: Filter.new(
+          %Subscribe{event_filter: Pattern.new(
             fn %Pop{} -> true end
           )}
         ]}
@@ -122,10 +122,10 @@ and they'll called with the following lifecycle:
 The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
 
     perform %All{effects: [
-      %Subscribe{event_filter: Filter.new(
+      %Subscribe{event_filter: Pattern.new(
         fn %Push{} -> true end
       )},
-      %Subscribe{event_filter: Filter.new(
+      %Subscribe{event_filter: Pattern.new(
         fn %Pop{} -> true end
       )}
     ]}
@@ -133,8 +133,8 @@ The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
 Based on the subscriptions, events are stored in a event queue, which all automata have,
 and `Receive` effect dequeues the first event from the queue.
 
-> `%Receive{}` is the same as `%Receive{event_filter: Filter.new(fn _ -> true end)}`,
-> and `Filter.new(fn _ -> true end)` returns an filter that matches with all events.
+> `%Receive{}` is the same as `%Receive{event_filter: Pattern.new(fn _ -> true end)}`,
+> and `Pattern.new(fn _ -> true end)` returns an filter that matches with all events.
 > Actually, `Receive` effect dequeues the first event **which matches with the given filter** from the queue.
 
 In the following code in `yield/2`, we assign `event.id` to `:pop_event_id`
@@ -216,12 +216,12 @@ Next, use the filters on subscribe in `Stack.spawn/2`:
 
     def spawn(%__MODULE__{stack: stack}) do
       perform %All{effects: [
-        %Subscribe{event_filter: Filter.new(
+        %Subscribe{event_filter: Pattern.new(
           fn %Push{stack_id: stack_id} ->
             stack_id == id
           end
         )},
-        %Subscribe{event_filter: Filter.new(
+        %Subscribe{event_filter: Pattern.new(
           fn %Pop{stack_id: stack_id} ->
             stack_id == id
           end

@@ -3,8 +3,8 @@ defmodule Cizen.Dispatcher.Node do
   use GenServer
 
   alias Cizen.Event
-  alias Cizen.Filter
-  alias Cizen.Filter.Code
+  alias Cizen.Pattern
+  alias Cizen.Pattern.Code
 
   def initialize do
     :ets.new(__MODULE__, [
@@ -34,7 +34,7 @@ defmodule Cizen.Dispatcher.Node do
 
     operations
     |> Enum.reduce([], fn {operation, nodes}, list ->
-      case Map.get(nodes, Filter.eval(operation, event)) do
+      case Map.get(nodes, Pattern.eval(operation, event)) do
         nil -> list
         node -> [node | list]
       end

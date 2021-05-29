@@ -4,10 +4,10 @@ defmodule Cizen.Effects.StartTest do
 
   alias Cizen.Dispatcher
   alias Cizen.Effects.Start
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
 
-  require Filter
+  require Pattern
 
   defmodule(TestEvent, do: defstruct([:value]))
 
@@ -52,7 +52,7 @@ defmodule Cizen.Effects.StartTest do
     end
 
     test "waits a Started event" do
-      Dispatcher.listen(Filter.new(fn %Saga.Started{} -> true end))
+      Dispatcher.listen(Pattern.new(fn %Saga.Started{} -> true end))
 
       id =
         assert_handle(fn ->

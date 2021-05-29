@@ -5,10 +5,10 @@ defmodule Cizen.Dispatcher do
 
   alias Cizen.Dispatcher.{Intake, Node}
   alias Cizen.Event
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
 
-  require Filter
+  require Pattern
 
   @doc false
   def start_link do
@@ -30,7 +30,7 @@ defmodule Cizen.Dispatcher do
   """
   @spec listen_all :: :ok
   def listen_all do
-    listen(Filter.new(fn _ -> true end))
+    listen(Pattern.new(fn _ -> true end))
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Cizen.Dispatcher do
   """
   @spec listen_event_type(module) :: :ok
   def listen_event_type(event_type) do
-    listen(Filter.new(fn event -> event.__struct__ == event_type end))
+    listen(Pattern.new(fn event -> event.__struct__ == event_type end))
   end
 
   @doc """

@@ -103,12 +103,12 @@ defmodule Cizen.MixProject do
       Dispatchers: [
         Cizen.Dispatcher,
         Cizen.Event,
-        Cizen.Filter
+        Cizen.Pattern
       ],
       "Dispatcher Internal": [
         Cizen.DefaultEventRouter,
         Cizen.EventRouter,
-        Cizen.FilterDispatcher.PushEvent
+        Cizen.PatternDispatcher.PushEvent
       ],
       Effects: [
         Cizen.Effects,

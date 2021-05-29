@@ -23,10 +23,10 @@ defmodule Cizen.Saga do
   alias Cizen.CizenSagaRegistry
   alias Cizen.Dispatcher
   alias Cizen.Event
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.SagaID
 
-  require Filter
+  require Pattern
 
   @type t :: struct
   @type state :: any
@@ -372,7 +372,7 @@ defmodule Cizen.Saga do
   @doc false
   def init_with(id, saga, lifetime, event, function, arguments) do
     Registry.register(CizenSagaRegistry, id, saga)
-    Dispatcher.listen(Filter.new(fn %Finish{saga_id: ^id} -> true end))
+    Dispatcher.listen(Pattern.new(fn %Finish{saga_id: ^id} -> true end))
     module = module(saga)
 
     unless is_nil(lifetime), do: Process.monitor(lifetime)

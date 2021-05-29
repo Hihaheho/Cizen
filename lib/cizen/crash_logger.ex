@@ -8,14 +8,14 @@ defmodule Cizen.CrashLogger do
   defstruct []
 
   alias Cizen.Effects.{Receive, Subscribe}
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
 
   require Logger
 
   def spawn(%__MODULE__{}) do
     perform(%Subscribe{
-      event_filter: Filter.new(fn %Saga.Crashed{} -> true end)
+      event_filter: Pattern.new(fn %Saga.Crashed{} -> true end)
     })
 
     :loop

@@ -4,7 +4,7 @@ defmodule Cizen.Effects.SubscribeTest do
   alias Cizen.Automaton
   alias Cizen.Dispatcher
   alias Cizen.Effects.{Receive, Subscribe}
-  alias Cizen.Filter
+  alias Cizen.Pattern
   alias Cizen.Saga
   alias Cizen.SagaID
 
@@ -21,14 +21,14 @@ defmodule Cizen.Effects.SubscribeTest do
         send(
           pid,
           perform(%Subscribe{
-            event_filter: Filter.new(fn %TestEvent{} -> true end)
+            event_filter: Pattern.new(fn %TestEvent{} -> true end)
           })
         )
 
         send(
           pid,
           perform(%Receive{
-            event_filter: Filter.new(fn %TestEvent{} -> true end)
+            event_filter: Pattern.new(fn %TestEvent{} -> true end)
           })
         )
 
