@@ -16,12 +16,10 @@ defmodule Cizen.Pattern.Code do
 
   defmacro as_code(vars, do: block) do
     # Puts :access_with_var label to each var to show an evaluated code of var includes :access code.
-    vars =
-      vars
-      |> Enum.map(fn {var_name, var} -> {var_name, {:access_with_var, [var]}} end)
-      |> Enum.into(%{})
+    vars = Enum.into(vars, %{}, fn {var_name, var} -> {var_name, {:access_with_var, [var]}} end)
 
-    translate(block, vars, __CALLER__)
+    block
+    |> translate(vars, __CALLER__)
     # Remove :access_with_var label
     |> Macro.postwalk(fn node ->
       case node do
