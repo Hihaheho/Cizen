@@ -104,17 +104,17 @@ Next, we define an automaton which handles the `Push` and `Pop`.
       end
     end
 
-There are two callbacks `spawn/2` and `yield/2`,
+There are two callbacks `spawn/1` and `yield/1`,
 and they'll called with the following lifecycle:
 
-1. First, `c:Cizen.Automaton.spawn/2` is called with a struct on start.
-2. Then, `c:Cizen.Automaton.yield/2` is repeatedly called with a state.
+1. First, `c:Cizen.Automaton.spawn/1` is called with a struct on start.
+2. Then, `c:Cizen.Automaton.yield/1` is repeatedly called with a state.
 
 `Cizen.Automaton.perform/1` performs the given effect synchronously and returns the result of the effect.
 
 > See [Effect](effect.html) for details.
 
-The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
+The following code in `spawn/1` subscribes two event types `Push` and `Pop`:
 
     perform %All{effects: [
       %Subscribe{pattern: Pattern.new(%Push{})},
@@ -164,7 +164,7 @@ Now, we can interact with the automaton and events like this:
       end
     end
 
-Normally, `Cizen.Automaton.perform/2` only works in automaton callbacks,
+Normally, `Cizen.Automaton.perform/1` only works in automaton callbacks,
 so we use `Cizen.Effectful.handle/1` to interact with the automaton from outside of the automata world.
 
 ## Multiple Stacks

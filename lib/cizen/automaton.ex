@@ -50,18 +50,18 @@ defmodule Cizen.Automaton do
   Invoked when the automaton is spawned.
   Saga.Started event will be dispatched after this callback.
 
-  Returned value will be used as the next state to pass `c:yield/2` callback.
+  Returned value will be used as the next state to pass `c:yield/1` callback.
   Returning `Automaton.finish()` will cause the automaton to finish.
 
   If not defined, default implementation is used,
-  and it passes the given saga struct to `c:yield/2` callback.
+  and it passes the given saga struct to `c:yield/1` callback.
   """
   @callback spawn(Saga.t()) :: finish | state
 
   @doc """
   Invoked when other callbacks returns a next state.
 
-  Returned value will be used as the next state to pass `c:yield/2` callback.
+  Returned value will be used as the next state to pass `c:yield/1` callback.
   Returning `Automaton.finish()` will cause the automaton to finish.
 
   If not defined, default implementation is used,
@@ -72,7 +72,7 @@ defmodule Cizen.Automaton do
   @doc """
   Invoked when the automaton is resumed.
 
-  Returned value will be used as the next state to pass `c:yield/2` callback.
+  Returned value will be used as the next state to pass `c:yield/1` callback.
   Returning `Automaton.finish()` will cause the automaton to finish.
 
   This callback is predefined. The default implementation is here:

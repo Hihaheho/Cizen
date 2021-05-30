@@ -42,21 +42,21 @@ defmodule Cizen.Saga do
   Invoked when the saga is started.
   Saga.Started event will be dispatched after this callback.
 
-  Returned value will be used as the next state to pass `c:handle_event/3` callback.
+  Returned value will be used as the next state to pass `c:handle_event/2` callback.
   """
   @callback on_start(t()) :: state
 
   @doc """
   Invoked when the saga receives an event.
 
-  Returned value will be used as the next state to pass `c:handle_event/3` callback.
+  Returned value will be used as the next state to pass `c:handle_event/2` callback.
   """
   @callback handle_event(Event.t(), state) :: state
 
   @doc """
   Invoked when the saga is resumed.
 
-  Returned value will be used as the next state to pass `c:handle_event/3` callback.
+  Returned value will be used as the next state to pass `c:handle_event/2` callback.
 
   This callback is predefined. The default implementation is here:
   ```
