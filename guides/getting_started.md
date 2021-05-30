@@ -4,7 +4,7 @@ Cizen is a library to build applications with automata and events.
 
 ## Cizen Tutorial
 
-[Primality Testing in Elixir using Cizen](https://ryo33.medium.com/primality-testing-in-elixir-using-cizen-8e2f5a39e467)
+See [Primality Testing in Elixir using Cizen](https://ryo33.medium.com/primality-testing-in-elixir-using-cizen-8e2f5a39e467)
 
 ## Automaton Tutorial
 
