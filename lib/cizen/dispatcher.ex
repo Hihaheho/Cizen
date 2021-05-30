@@ -44,17 +44,17 @@ defmodule Cizen.Dispatcher do
   @doc """
   Listen events with the given event filter.
   """
-  def listen(event_filter) do
-    listen_with_pid(self(), event_filter.code)
+  def listen(pattern) do
+    listen_with_pid(self(), pattern.code)
   end
 
   @doc """
   Listen events with the given event filter for the given saga ID.
   """
-  def listen(subscriber, event_filter) do
+  def listen(subscriber, pattern) do
     case Saga.get_pid(subscriber) do
       {:ok, pid} ->
-        listen_with_pid(pid, event_filter.code)
+        listen_with_pid(pid, pattern.code)
 
       _ ->
         :ok

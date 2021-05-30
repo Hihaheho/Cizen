@@ -5,7 +5,7 @@ A saga is a process which handles events.
 ## Saga Module and Saga Struct
 
 A saga module is a module which implements `Cizen.Saga` behaviour and defines a struct.
-We call the defined struct "saga struct" and use it for starting sagas and filtering events.
+We call the defined struct "saga struct" and use it for starting sagas.
 
 ### Example
 

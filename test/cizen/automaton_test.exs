@@ -303,7 +303,7 @@ defmodule Cizen.AutomatonTest do
       @impl true
       def spawn(state) do
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         state
@@ -314,21 +314,21 @@ defmodule Cizen.AutomatonTest do
         send(
           pid,
           perform(%Receive{
-            event_filter: Pattern.new(fn %TestEvent{value: :a} -> true end)
+            pattern: Pattern.new(fn %TestEvent{value: :a} -> true end)
           })
         )
 
         send(
           pid,
           perform(%Receive{
-            event_filter: Pattern.new(fn %TestEvent{value: :c} -> true end)
+            pattern: Pattern.new(fn %TestEvent{value: :c} -> true end)
           })
         )
 
         send(
           pid,
           perform(%Receive{
-            event_filter: Pattern.new(fn %TestEvent{value: :b} -> true end)
+            pattern: Pattern.new(fn %TestEvent{value: :b} -> true end)
           })
         )
 
@@ -363,7 +363,7 @@ defmodule Cizen.AutomatonTest do
       @impl true
       def spawn(%__MODULE__{}) do
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         :a

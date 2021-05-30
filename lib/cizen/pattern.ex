@@ -13,11 +13,11 @@ defmodule Cizen.Pattern do
       Pattern.new(
         fn %Event{body: %SomeEvent{field: :a}} -> true end
       )
+      # or shortly:
+      Pattern.new(%SomeEvent{field: :a})
 
       value = :a
-      Pattern.new(
-        fn %Event{body: %SomeEvent{field: ^value}} -> true end
-      )
+      Pattern.new(%SomeEvent{field: ^value})
 
   ## With guard
 
@@ -27,18 +27,16 @@ defmodule Cizen.Pattern do
 
   ## Matches all
 
-      Pattern.new(fn _ -> true end)
+      Pattern.new(_)
 
   ## Matches the specific type of struct
 
-      Pattern.new(
-        fn %Event{source_saga: %SomeSaga{}} -> true end
-      )
+      Pattern.new(%SomeEvent{})
 
   ## Compose patterns
 
       Pattern.new(
-        fn %Event{body: %SomeEvent{field: value}} ->
+        fn %SomeEvent{field: value} ->
           Pattern.match?(other_pattern, value)
         end
       )
@@ -46,15 +44,15 @@ defmodule Cizen.Pattern do
   ## Multiple patterns
 
       Pattern.any([
-        Pattern.new(fn %Event{body: %Resolve{id: id}} -> id == "some id" end),
-        Pattern.new(fn %Event{body: %Reject{id: id}} -> id == "some id" end)
+        Pattern.new(fn %Resolve{id: id} -> id == "some id" end),
+        Pattern.new(fn %Reject{id: id} -> id == "some id" end)
       ])
 
   ## Multiple cases
 
       Pattern.new(fn
-        %Event{body: %SomeEvent{field: :ignore}} -> false
-        %Event{body: %SomeEvent{field: value}} -> true
+        %SomeEvent{field: :ignore} -> false
+        %SomeEvent{field: value} -> true
       end)
   """
 
@@ -65,7 +63,7 @@ defmodule Cizen.Pattern do
   alias Cizen.Pattern.{Code, Compiler}
 
   @doc """
-  Creates a pattern with the given anonymous function.
+  Creates a pattern with the given anonymous function or pattern match.
   """
   defmacro new(pattern) do
     function =

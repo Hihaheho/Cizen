@@ -16,7 +16,7 @@ defmodule Cizen.Effects.ReceiveTest do
     id = SagaID.new()
 
     effect = %Receive{
-      event_filter: Pattern.new(fn %TestEvent1{} -> true end)
+      pattern: Pattern.new(fn %TestEvent1{} -> true end)
     }
 
     %{handler: id, effect: effect}
@@ -53,7 +53,7 @@ defmodule Cizen.Effects.ReceiveTest do
     end
 
     test "uses the default event filter" do
-      assert %Receive{} == %Receive{event_filter: %Pattern{}}
+      assert %Receive{} == %Receive{pattern: %Pattern{}}
     end
 
     defmodule TestAutomaton do
@@ -72,8 +72,8 @@ defmodule Cizen.Effects.ReceiveTest do
 
         send(pid, :launched)
 
-        send(pid, perform(%Receive{event_filter: test_event1_filter}))
-        send(pid, perform(%Receive{event_filter: test_event2_filter}))
+        send(pid, perform(%Receive{pattern: test_event1_filter}))
+        send(pid, perform(%Receive{pattern: test_event2_filter}))
 
         Automaton.finish()
       end

@@ -21,14 +21,14 @@ defmodule Cizen.Effects.SubscribeTest do
         send(
           pid,
           perform(%Subscribe{
-            event_filter: Pattern.new(fn %TestEvent{} -> true end)
+            pattern: Pattern.new(fn %TestEvent{} -> true end)
           })
         )
 
         send(
           pid,
           perform(%Receive{
-            event_filter: Pattern.new(fn %TestEvent{} -> true end)
+            pattern: Pattern.new(fn %TestEvent{} -> true end)
           })
         )
 

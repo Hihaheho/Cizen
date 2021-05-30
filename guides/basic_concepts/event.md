@@ -1,29 +1,22 @@
 # Event
 
-## Event Struct
+Events are values (commonly struct or map) we listen and dispatch.
 
-A struct of `Cizen.Event` has the following four fields:
+## Listen Events
 
-- `:id` an unique ID for the event.
-- `:body` a struct.
-- `:source_saga_id` a saga ID of the source of the event.
-- `:source_saga` a saga struct the source of the event.
+    Cizen.Dispatcher.listen(
+      Pattern.new(%PushMessage{})
+    )
 
-## Creating a Event
+See `Cizen.Pattern` for details.
 
-Any struct can be an event:
-
-    event = %PushMessage{to: "user A"}
-
-## Dispatching Event
-
-### With Dispatcher
+## Dispatch by Dispatcher
 
     Cizen.Dispatcher.dispatch(
       %PushMessage{to: "user A"}
     )
 
-### With Dispatch Effect
+## Dispatch by Dispatch Effect
 
     use Cizen.Effectful
     use Cizen.Effects

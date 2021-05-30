@@ -6,12 +6,12 @@ defmodule Cizen.Effects.Subscribe do
 
   ## Example
       perform %Subscribe{
-        event_filter: Pattern.new(fn %SomeEvent{} -> true end)
+        pattern: Pattern.new(fn %SomeEvent{} -> true end)
       }
   """
 
-  @enforce_keys [:event_filter]
-  defstruct [:event_filter]
+  @enforce_keys [:pattern]
+  defstruct [:pattern]
 
   alias Cizen.Dispatcher
   alias Cizen.Effect
@@ -19,8 +19,8 @@ defmodule Cizen.Effects.Subscribe do
   use Effect
 
   @impl true
-  def init(handler, %__MODULE__{event_filter: event_filter}) do
-    Dispatcher.listen(handler, event_filter)
+  def init(handler, %__MODULE__{pattern: pattern}) do
+    Dispatcher.listen(handler, pattern)
     {:resolve, :ok}
   end
 

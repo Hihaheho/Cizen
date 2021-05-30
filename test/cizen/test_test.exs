@@ -35,7 +35,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -50,7 +50,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(100, fn ->
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -73,7 +73,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})
@@ -88,7 +88,7 @@ defmodule Cizen.TestTest do
     result =
       assert_handle(fn ->
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         Dispatcher.dispatch(%TestEvent{value: 1})

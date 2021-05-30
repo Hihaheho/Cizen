@@ -131,7 +131,7 @@ defmodule Cizen.Effects.AllTest do
       @impl true
       def spawn(struct) do
         perform(%Subscribe{
-          event_filter: Pattern.new(fn %TestEvent{} -> true end)
+          pattern: Pattern.new(fn %TestEvent{} -> true end)
         })
 
         struct

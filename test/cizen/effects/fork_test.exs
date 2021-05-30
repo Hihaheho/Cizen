@@ -19,7 +19,7 @@ defmodule Cizen.Effects.ForkTest do
     @impl true
     def spawn(%__MODULE__{pid: pid}) do
       perform(%Subscribe{
-        event_filter: Pattern.new(fn %TestEvent{} -> true end)
+        pattern: Pattern.new(fn %TestEvent{} -> true end)
       })
 
       forked =

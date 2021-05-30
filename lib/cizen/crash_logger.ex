@@ -15,7 +15,7 @@ defmodule Cizen.CrashLogger do
 
   def spawn(%__MODULE__{}) do
     perform(%Subscribe{
-      event_filter: Pattern.new(fn %Saga.Crashed{} -> true end)
+      pattern: Pattern.new(fn %Saga.Crashed{} -> true end)
     })
 
     :loop

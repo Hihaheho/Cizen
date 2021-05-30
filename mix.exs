@@ -74,11 +74,10 @@ defmodule Cizen.MixProject do
       "README.md",
       "guides/getting_started.md",
       "guides/basic_concepts/event.md",
-      "guides/basic_concepts/filter.md",
+      "guides/basic_concepts/pattern.md",
       "guides/basic_concepts/saga.md",
       "guides/basic_concepts/effect.md",
       "guides/basic_concepts/test.md",
-      "guides/advanced_concepts/channel.md"
     ]
   end
 
@@ -86,7 +85,6 @@ defmodule Cizen.MixProject do
     [
       Guides: ~r/guides\/[^\/]+\.md/,
       "Basic Concepts": ~r/guides\/basic_concepts\/.?/,
-      "Advanced Concepts": ~r/guides\/advanced_concepts\/.?/
     ]
   end
 
@@ -95,20 +93,10 @@ defmodule Cizen.MixProject do
       Automaton: [
         Cizen.Automaton
       ],
-      "Automaton Internal": [
-        Cizen.Automaton.PerformEffect,
-        Cizen.Effect,
-        Cizen.EffectHandler
-      ],
       Dispatchers: [
         Cizen.Dispatcher,
         Cizen.Event,
         Cizen.Pattern
-      ],
-      "Dispatcher Internal": [
-        Cizen.DefaultEventRouter,
-        Cizen.EventRouter,
-        Cizen.PatternDispatcher.PushEvent
       ],
       Effects: [
         Cizen.Effects,
@@ -125,24 +113,15 @@ defmodule Cizen.MixProject do
         Cizen.Effects.Start,
         Cizen.Effects.Subscribe
       ],
-      "Effects Internal": [
-        Cizen.Effects.HybridMap
-      ],
       Effectful: [
         Cizen.Effectful
       ],
       Saga: [
-        Cizen.CizenSagaRegistry,
-        Cizen.CrashLogger,
-        Cizen.MonitorSaga,
-        Cizen.MonitorSaga.Down,
         Cizen.Saga,
         Cizen.Saga.Crashed,
         Cizen.Saga.Finish,
         Cizen.Saga.Finished,
         Cizen.Saga.Started,
-        Cizen.SagaID,
-        Cizen.SagaMonitor,
         Cizen.SagaRegistry,
       ],
       Test: [

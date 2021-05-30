@@ -2,14 +2,20 @@
 
 Cizen is a library to build applications with automata and events.
 
-For our getting started tutorial, we are going to create an automaton works like a stack.
+## Cizen Tutorial
+
+[Primality Testing in Elixir using Cizen](https://ryo33.medium.com/primality-testing-in-elixir-using-cizen-8e2f5a39e467)
+
+## Automaton Tutorial
+
+For our getting started, we are going to create an automaton works like a stack.
 The automaton will work like the following implementation with `GenServer`:
 
     defmodule Stack do
       use GenServer
 
       @impl true
-      def on_start(stack) do
+      def init(stack) do
         {:ok, stack}
       end
 
@@ -49,18 +55,14 @@ At first, define two events, `Push` and `Pop`:
 
     defmodule Pop do
       defstruct []
-
-      use Cizen.Request
-      defresponse Item, :pop_event_id do
-        defstruct [:item, :pop_event_id]
-      end
     end
 
 `Push` is an event to push an item to a stack,
 and `Pop` is an event to pop an item from a stack.
-To receive the popped item for a `Pop` event,
-we made `Pop` requestive and define `Pop.Item`,
+To receive the popped item for a `Pop` event, we define `Pop.Item`,
 which is an event to return the popped item.
+
+Notes: This example uses struct but you can also use just maps or values.
 
 ## Define an Automaton
 
@@ -72,16 +74,13 @@ Next, we define an automaton which handles the `Push` and `Pop`.
 
       use Cizen.Effects # to use All, Subscribe, Receive, and Dispatch
       alias Cizen.Pattern
+      require Pattern
 
       @impl true
       def spawn(%__MODULE__{stack: stack}) do
         perform %All{effects: [
-          %Subscribe{event_filter: Pattern.new(
-            fn %Push{} -> true end
-          )},
-          %Subscribe{event_filter: Pattern.new(
-            fn %Pop{} -> true end
-          )}
+          %Subscribe{pattern: Pattern.new(%Push{})},
+          %Subscribe{pattern: Pattern.new(%Pop{})}
         ]}
 
         stack # next state
@@ -95,12 +94,10 @@ Next, we define an automaton which handles the `Push` and `Pop`.
           %Push{item: item} ->
             [item | stack] # next state
 
-          %Pop{} ->
+          %Call{from: from, request: %Pop{}} ->
             [item | tail] = stack
 
-            perform %Dispatch{
-              body: %Pop.Item{item: item, pop_event_id: event.id}
-            }
+            Saga.reply(item)
 
             tail # next state
         end
@@ -113,8 +110,6 @@ and they'll called with the following lifecycle:
 1. First, `c:Cizen.Automaton.spawn/2` is called with a struct on start.
 2. Then, `c:Cizen.Automaton.yield/2` is repeatedly called with a state.
 
-> The first argument of the two callbacks is a saga ID, and we'll use it [later](#multiple-stacks) in this guide.
-
 `Cizen.Automaton.perform/1` performs the given effect synchronously and returns the result of the effect.
 
 > See [Effect](effect.html) for details.
@@ -122,27 +117,16 @@ and they'll called with the following lifecycle:
 The following code in `spawn/2` subscribes two event types `Push` and `Pop`:
 
     perform %All{effects: [
-      %Subscribe{event_filter: Pattern.new(
-        fn %Push{} -> true end
-      )},
-      %Subscribe{event_filter: Pattern.new(
-        fn %Pop{} -> true end
-      )}
+      %Subscribe{pattern: Pattern.new(%Push{})},
+      %Subscribe{pattern: Pattern.new(%Pop{})}
     ]}
 
 Based on the subscriptions, events are stored in a event queue, which all automata have,
 and `Receive` effect dequeues the first event from the queue.
 
-> `%Receive{}` is the same as `%Receive{event_filter: Pattern.new(fn _ -> true end)}`,
-> and `Pattern.new(fn _ -> true end)` returns an filter that matches with all events.
+> `%Receive{}` is the same as `%Receive{pattern: Pattern.new(_)}`,
+> and `Pattern.new(_)` returns an event pattern that matches to all events.
 > Actually, `Receive` effect dequeues the first event **which matches with the given filter** from the queue.
-
-In the following code in `yield/2`, we assign `event.id` to `:pop_event_id`
-to link the `Pop.Item` event with the received `Pop` event:
-
-    perform %Dispatch{
-      body: %Pop.Item{item: item, pop_event_id: event.id}
-    }
 
 ## Interact with Automata
 
@@ -155,14 +139,12 @@ Now, we can interact with the automaton and events like this:
 
         handle fn ->
           # start stack
-          perform %Start{
+          stack = perform %Start{
             saga: %Stack{stack: [:a]}
           }
 
-          item_event = perform %Request{
-            body: %Pop{}
-          }
-          %Pop.Item{item: item} = item_event
+          # TODO use Call effect (not implemented yet).
+          item = Saga.call(stack, %Pop{})
           IO.puts(item) # => a
 
           perform %Dispatch{
@@ -173,16 +155,10 @@ Now, we can interact with the automaton and events like this:
             body: %Push{item: :c}
           }
 
-          item_event = perform %Request{
-            body: %Pop{}
-          }
-          %Pop.Item{item: item} = item_event
+          item = Saga.call(stack, %Pop{})
           IO.puts(item) # => c
 
-          item_event = perform %Request{
-            body: %Pop{}
-          }
-          %Pop.Item{item: item} = item_event
+          item = Saga.call(stack, %Pop{})
           IO.puts(item) # => b
         end
       end
@@ -195,7 +171,7 @@ so we use `Cizen.Effectful.handle/1` to interact with the automaton from outside
 
 Our code works well only with just one stack.
 It's broken if we have multiple stacks because all stacks receive `Push` or `Pop` event when we dispatch.
-To avoid it, let's introduce event body filters.
+To avoid it, let's introduce more complex pattern.
 
 First, add `:stack_id` and definitions of event body filters in the events:
 
@@ -204,28 +180,15 @@ First, add `:stack_id` and definitions of event body filters in the events:
     end
 
     defmodule Pop do
-      defstruct [:stack_id]
-
-      use Cizen.Request
-      defresponse Item, :pop_event_id do
-        defstruct [:item, :pop_event_id]
-      end
+      defstruct []
     end
 
 Next, use the filters on subscribe in `Stack.spawn/2`:
 
     def spawn(%__MODULE__{stack: stack}) do
       perform %All{effects: [
-        %Subscribe{event_filter: Pattern.new(
-          fn %Push{stack_id: stack_id} ->
-            stack_id == id
-          end
-        )},
-        %Subscribe{event_filter: Pattern.new(
-          fn %Pop{stack_id: stack_id} ->
-            stack_id == id
-          end
-        )},
+        %Subscribe{pattern: Pattern.new(%Push{stack_id: ^id})},
+        %Subscribe{pattern: Pattern.new(%Pop{})}
       ]}
 
       stack # next state
@@ -261,24 +224,15 @@ Finally, we can handle multiple stacks like this:
           }
 
           # pop from the stack A
-          item_event = perform %Request{
-            body: %Pop{stack_id: stack_a}
-          }
-          %Pop.Item{item: item} = item_event
+          item = Saga.call(stack_a, %Pop{})
           IO.puts(item) # => a
 
           # pop from the stack B
-          item_event = perform %Request{
-            body: %Pop{stack_id: stack_b}
-          }
-          %Pop.Item{item: item} = item_event
+          item = Saga.call(stack_b, %Pop{})
           IO.puts(item) # => c
 
           # pop from the stack B
-          item_event = perform %Request{
-            body: %Pop{stack_id: stack_b}
-          }
-          %Pop.Item{item: item} = item_event
+          item = Saga.call(stack_b, %Pop{})
           IO.puts(item) # => b
         end
       end

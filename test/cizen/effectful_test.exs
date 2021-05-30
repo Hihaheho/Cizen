@@ -67,13 +67,13 @@ defmodule Cizen.EffectfulTest do
             pid,
             handle(fn ->
               perform(%Subscribe{
-                event_filter: filter
+                pattern: filter
               })
 
               send(pid, :subscribed)
 
               perform(%Receive{
-                event_filter: filter
+                pattern: filter
               })
             end)
           )

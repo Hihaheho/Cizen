@@ -25,24 +25,25 @@ or only specified effects:
     use Cizen.Effects, only: [Subscribe, Receive, Dispatch]
 
 ### Effects for Event
+
 - `Cizen.Effects.Subscribe` subscribes events by the given filter.
 - `Cizen.Effects.Receive` receives an event which fulfills the given filter.
 - `Cizen.Effects.Dispatch` dispatches an event with the given body.
-- `Cizen.Effects.Request` dispatches a [requestive event](event.html#requestive-event) and wait the response.
 
 ### Effects for Saga
+
 - `Cizen.Effects.Start` starts a saga by the given saga struct.
 - `Cizen.Effects.End` ends a saga by its saga ID.
 - `Cizen.Effects.Fork` forks a saga.
 - `Cizen.Effects.Monitor` starts monitoring a saga.
 
 ### Effects Combinators
+
 - `Cizen.Effects.All` performs all given effects.
-- `Cizen.Effects.Chain` chains the given effects and performs them sequencially.
+- `Cizen.Effects.Chain` chains the given effects and performs them sequentially.
 - `Cizen.Effects.Map` maps the result of the given effect.
 - `Cizen.Effects.Race` starts a race between the given effects.
 
 ## Custom Effects
 
 See `Cizen.Effect`.
-
